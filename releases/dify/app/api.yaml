@@ -20,6 +20,8 @@ spec:
       namespace: frontend-dify
     - name: postgres-operations
       namespace: infra-postgres-operations
+    - name: frontend-dify-postgres
+      namespace: infra-postgres-operations
     - name: frontend-dify-redis
       namespace: frontend-dify
     - name: frontend-dify-plugin-daemon

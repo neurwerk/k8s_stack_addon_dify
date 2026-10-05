@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-dify-postgres-ingress
+  namespace: infra-postgres-operations
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: postgres-operations
+      app.kubernetes.io/instance: postgres-operations
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: frontend-dify
+          podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [api, api-migration, worker, beat, plugin-daemon]
+              - key: app.kubernetes.io/instance
+                operator: In
+                values: [frontend-dify-api, frontend-dify-worker, frontend-dify-beat, frontend-dify-plugin-daemon]
+      ports:
+        - protocol: TCP
+          port: 9712
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-dify-postgres-egress
+  namespace: frontend-dify
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [api, api-migration, worker, beat, plugin-daemon]
+      - key: app.kubernetes.io/instance
+        operator: In
+        values: [frontend-dify-api, frontend-dify-worker, frontend-dify-beat, frontend-dify-plugin-daemon]
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: infra-postgres-operations
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres-operations
+              app.kubernetes.io/instance: postgres-operations
+      ports:
+        - protocol: TCP
+          port: 9712

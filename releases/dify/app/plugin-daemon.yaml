@@ -22,6 +22,8 @@ spec:
       namespace: infra-rook-ceph
     - name: postgres-operations
       namespace: infra-postgres-operations
+    - name: frontend-dify-postgres
+      namespace: infra-postgres-operations
     - name: frontend-dify-redis
       namespace: frontend-dify
   chart:
