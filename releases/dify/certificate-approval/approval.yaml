@@ -20,7 +20,7 @@ spec:
   healthCheckExprs:
     - apiVersion: policy.cert-manager.io/v1alpha1
       kind: CertificateRequestPolicy
-      inProgress: !status.conditions.exists(e, e.type == 'Ready' && e.observedGeneration == metadata.generation && e.status != 'Unknown')
+      inProgress: "!status.conditions.exists(e, e.type == 'Ready' && e.observedGeneration == metadata.generation && e.status != 'Unknown')"
       failed: status.conditions.exists(e, e.type == 'Ready' && e.observedGeneration == metadata.generation && e.status == 'False')
       current: status.conditions.exists(e, e.type == 'Ready' && e.observedGeneration == metadata.generation && e.status == 'True')
   dependsOn:
