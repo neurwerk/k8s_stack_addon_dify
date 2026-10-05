@@ -20,8 +20,9 @@ spec:
   healthCheckExprs:
     - apiVersion: policy.cert-manager.io/v1alpha1
       kind: CertificateRequestPolicy
-      inProgress: status.conditions.filter(e, e.type == 'Ready').exists(e, e.status != 'True')
-      current: status.conditions.filter(e, e.type == 'Ready').exists(e, e.status == 'True')
+      inProgress: !status.conditions.exists(e, e.type == 'Ready' && e.observedGeneration == metadata.generation && e.status != 'Unknown')
+      failed: status.conditions.exists(e, e.type == 'Ready' && e.observedGeneration == metadata.generation && e.status == 'False')
+      current: status.conditions.exists(e, e.type == 'Ready' && e.observedGeneration == metadata.generation && e.status == 'True')
   dependsOn:
     - name: cert-manager-approver-policy
       namespace: infra-cert-manager
