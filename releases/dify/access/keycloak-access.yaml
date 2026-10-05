@@ -42,3 +42,6 @@ spec:
     - kind: ConfigMap
       name: dify-keycloak-access-values
       valuesKey: values.yaml
+  values:
+    k8sTools:
+      image: ghcr.io/neurwerk/k8s-stack-tooling:0.7.3@sha256:efa09b2f29d02fbd07fe12774fd7d3db6bf4e02ef403c7be2c18196fbc956d99
