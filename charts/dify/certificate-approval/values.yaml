@@ -1,0 +1,7 @@
+# Client-owned selection and public hostname; no policy is created when disabled.
+dify:
+  enabled: false
+  hostname: ""
+# Must equal dify.hostname; the existing Gateway consumes this value.
+frontendDify:
+  hostname: ""

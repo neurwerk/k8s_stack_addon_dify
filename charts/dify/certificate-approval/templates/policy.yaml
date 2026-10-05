@@ -1,0 +1,66 @@
+{{- if .Values.dify.enabled }}
+{{- $hostname := required "dify.hostname is required when dify.enabled is true" .Values.dify.hostname | trim -}}
+{{- if or (eq $hostname "place.holder") (hasSuffix ".place.holder" $hostname) -}}
+{{- fail "dify.hostname must be a real public hostname" -}}
+{{- end }}
+{{- if ne $hostname (.Values.frontendDify.hostname | default "" | trim) -}}
+{{- fail "dify.hostname must match frontendDify.hostname used by the Dify Gateway" -}}
+{{- end }}
+{{- range $issuer := list (dict "suffix" "staging" "name" "letsencrypt-staging-cluster-issuer") (dict "suffix" "production" "name" "letsencrypt-production-cluster-issuer") }}
+---
+apiVersion: policy.cert-manager.io/v1alpha1
+kind: CertificateRequestPolicy
+metadata:
+  name: cert-manager-public-dify-{{ $issuer.suffix }}
+spec:
+  allowed:
+    dnsNames:
+      values:
+        - {{ $hostname | quote }}
+      required: true
+    isCA: false
+    usages:
+      - digital signature
+      - key encipherment
+  constraints:
+    minDuration: 2160h
+    maxDuration: 2160h
+    privateKey:
+      algorithm: RSA
+      minSize: 2048
+      maxSize: 2048
+  selector:
+    issuerRef:
+      group: cert-manager.io
+      kind: ClusterIssuer
+      name: {{ $issuer.name | quote }}
+    namespace:
+      matchNames:
+        - frontend-dify
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cert-manager-public-dify-use
+rules:
+  - apiGroups: [policy.cert-manager.io]
+    resources: [certificaterequestpolicies]
+    verbs: [use]
+    resourceNames:
+      - cert-manager-public-dify-staging
+      - cert-manager-public-dify-production
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cert-manager-public-dify-use
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cert-manager-public-dify-use
+subjects:
+  - kind: ServiceAccount
+    name: infra-cert-manager-controller
+    namespace: infra-cert-manager
+{{- end }}

@@ -11,6 +11,6 @@ check:
 		helm lint --strict "$$chart" --values tests/validation/helm-lint-values.yaml; \
 		helm template test "$$chart" --values tests/validation/helm-lint-values.yaml | kubeconform -strict -summary -ignore-missing-schemas; \
 	done
-	@for package in releases/namespaces/dify releases/dify/app releases/dify/oidc releases/dify/secret-sync releases/dify/database; do \
+	@for package in releases/namespaces/dify releases/dify/secret-sync releases/dify/database releases/dify/access releases/dify/oidc releases/dify/managed-keys releases/dify/certificate-approval releases/dify/app; do \
 		kustomize build --load-restrictor LoadRestrictionsNone "$$package" | kubeconform -strict -summary -ignore-missing-schemas; \
 	done
