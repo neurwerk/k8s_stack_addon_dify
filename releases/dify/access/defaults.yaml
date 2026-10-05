@@ -1,0 +1,13 @@
+addonAccess:
+  enabled: true
+  name: dify
+  realmRoles: [dify-user, dify-admin]
+  realmRoleComposites:
+    dify-admin: [dify-user]
+  accessGroups:
+    /access/neurwerk-dify-users:
+      realmRoles: [dify-user]
+    /access/neurwerk-dify-admins:
+      realmRoles: [dify-admin]
+  platformAdminRole: dify-admin
+  platformAdminGrant: true

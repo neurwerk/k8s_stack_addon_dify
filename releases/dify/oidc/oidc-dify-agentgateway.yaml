@@ -18,6 +18,8 @@ spec:
   dependsOn:
     - name: keycloak-agentgateway-oidc
       namespace: auth-keycloak
+    - name: keycloak-dify-access
+      namespace: auth-keycloak
   chart:
     spec:
       chart: ./charts/dify/oidc-agentgateway
