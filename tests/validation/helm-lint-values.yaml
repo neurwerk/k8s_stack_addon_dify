@@ -19,3 +19,6 @@ frontendDify:
     database: dify
   config:
     AUTO_SETUP_ADMIN_EMAIL: admin@example.test
+dify:
+  enabled: true
+  hostname: dify.example.test
