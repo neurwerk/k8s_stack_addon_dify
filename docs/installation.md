@@ -65,7 +65,7 @@ stage. Other Dify workload egress and Keycloak configuration Job egress already
 belong to their workload charts. Do not manually approve a denied request:
 first verify policy readiness and request normal cert-manager renewal.
 
-## Managed API keys (draft; do not select)
+## Managed API keys
 
 The add-on owns `ConfigMap/dify-managed-key-grants` and the
 `ExternalSecret/dify-managed-key-verifiers` in `auth-keycloak-api-key-bridge`.
@@ -105,11 +105,10 @@ The bridge has no fixed Dify slot: each selected product contributes its own
 entries and resources. The client Flux graph must wait for the add-on SecretStore,
 ready ExternalSecret target, OIDC service-account reconciliation, and the
 `dify-managed-keys` HelmRelease before reconciling the bridge; then wait for
-the bridge before starting Dify. Do not enable this stage until the generic Base
-bridge chart (#373), a published compatible bridge image (#26), Base Dify
-ownership removal (#375), and Tooling verifier ownership (#99) are coordinated.
-Those drafts do not authorize changing credentials, adopting a platform release,
-or selecting this add-on.
+the bridge before starting Dify. The selected Base must provide a generic bridge
+chart and a published compatible bridge image without owning Dify resources;
+Tooling must manage the verifier credentials. Do not select the add-on until
+these prerequisites and the other installation requirements above are met.
 
 ## Keycloak access
 
