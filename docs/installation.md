@@ -34,3 +34,48 @@ generic chart rejects existing objects without its ownership marker. First
 check actual database state and backup coverage and agree a safe handoff; do not
 drop or assume empty databases. Existing chart names, HelmRelease names, and
 GitRepository source references stay unchanged.
+## Managed API keys (draft; do not select)
+
+The add-on owns `ConfigMap/dify-managed-key-grants` and the
+`ExternalSecret/dify-managed-key-verifiers` in `auth-keycloak-api-key-bridge`.
+The grant chart uses the same `authKeycloak.difyAgentgatewayClientRoles` and
+effective OpenRouter catalog as the Dify service-account OIDC chart. The client
+must supply `client-values`, `keycloak-product-values`, and (when selected)
+`client-openrouter-catalog-values` in the bridge namespace for that HelmRelease.
+It rejects duplicate, invalid, or ungranted permissions; the Dify API chart
+separately requires every configured model's invoke permission.
+
+The grant identities remain `dify-agentgateway-primary` and
+`dify-agentgateway-secondary`, with service client `dify-agentgateway` by
+default. The add-on's ExternalSecret copies only the existing primary and
+secondary verifier properties from `auth-keycloak-api-key-bridge/internal`;
+it does not generate, rotate, or print keys. An empty secondary verifier
+disables that rotation entry. The existing Dify runtime Secret still receives
+the raw key from `frontend-dify/internal` for its own namespace only.
+
+In the client-owned bridge product values, configure the **generic** Base
+`authKeycloakApiKeyBridge.managedRegistrations` list with these add-on entries
+(alongside any other selected add-on registrations):
+
+```yaml
+authKeycloakApiKeyBridge:
+  managedRegistrations:
+    - grantConfigMap: dify-managed-key-grants
+      grantKey: primary.json
+      verifierSecret: dify-managed-key-verifiers
+      verifierKey: difyAgentgatewayPrimaryVerifierSha256
+    - grantConfigMap: dify-managed-key-grants
+      grantKey: secondary.json
+      verifierSecret: dify-managed-key-verifiers
+      verifierKey: difyAgentgatewaySecondaryVerifierSha256
+```
+
+The bridge has no fixed Dify slot: each selected product contributes its own
+entries and resources. The client Flux graph must wait for the add-on SecretStore,
+ready ExternalSecret target, OIDC service-account reconciliation, and the
+`dify-managed-keys` HelmRelease before reconciling the bridge; then wait for
+the bridge before starting Dify. Do not enable this stage until the generic Base
+bridge chart (#373), a published compatible bridge image (#26), Base Dify
+ownership removal (#375), and Tooling verifier ownership (#99) are coordinated.
+Those drafts do not authorize changing credentials, adopting a platform release,
+or selecting this add-on.
