@@ -20,7 +20,7 @@ spec:
       namespace: auth-keycloak
   chart:
     spec:
-      chart: ./charts/keycloak/oidc/dify
+      chart: ./charts/dify/oidc
       sourceRef:
         kind: GitRepository
         name: dify-addon

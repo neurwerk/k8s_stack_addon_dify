@@ -20,7 +20,7 @@ spec:
       namespace: auth-keycloak
   chart:
     spec:
-      chart: ./charts/keycloak/oidc/dify-agentgateway
+      chart: ./charts/dify/oidc-agentgateway
       sourceRef:
         kind: GitRepository
         name: dify-addon

@@ -13,12 +13,11 @@ The canonical repository is
 
 ## Package layout
 
-- `charts/dify/`: application components.
-- `charts/keycloak/oidc/dify*/`: Dify OIDC registration.
+- `charts/dify/`: application components and Dify OIDC registration.
 - `releases/namespaces/dify/`: Dify namespace.
 - `releases/dify/secret-sync/`: namespace-local OpenBao credential delivery.
 - `releases/dify/oidc/`: OIDC reconciliation.
-- `releases/dify/`: application releases and non-secret defaults.
+- `releases/dify/app/`: application releases and non-secret defaults.
 
 The release files use `GitRepository/dify-addon` in `flux-system`. The client
 supplies the source at an exact commit, namespace-local values, and ordered
@@ -27,7 +26,11 @@ database, roles, approval, and managed-key stages still need the agreed Base
 interfaces, and the application charts still pin the verified legacy GHCR
 API/Web digests. Do not select it until those stages are complete, the new
 API and Web image names have been published and verified, the chart pins have
-been updated, and client dependencies have been validated.
+been updated, and client dependencies have been validated. No Dify instance is
+running.
+
+See [installation](docs/installation.md) for the staged package boundaries and
+[operations](docs/operations.md) for validation and future health checks.
 
 ## What It Changes
 
