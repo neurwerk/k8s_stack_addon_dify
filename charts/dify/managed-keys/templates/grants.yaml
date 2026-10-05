@@ -1,0 +1,39 @@
+{{- $roles := .Values.authKeycloak.difyAgentgatewayClientRoles | default list -}}
+{{- if not (has "llm:invoke" $roles) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must include llm:invoke" }}{{- end -}}
+{{- if ne (len $roles) (len ($roles | uniq)) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must not contain duplicates" }}{{- end -}}
+{{- $catalogUpstreams := dict -}}
+{{- $catalogNames := dict -}}
+{{- range $entry := .Values.openrouterCatalog.models | default list -}}
+{{- if hasKey $catalogUpstreams $entry.upstreamModel }}{{- fail (printf "OpenRouter upstream model %q is duplicated" $entry.upstreamModel) }}{{- end -}}
+{{- if hasKey $catalogNames $entry.name }}{{- fail (printf "OpenRouter public model name %q is duplicated" $entry.name) }}{{- end -}}
+{{- $_ := set $catalogUpstreams $entry.upstreamModel true -}}
+{{- $_ := set $catalogNames $entry.name true -}}
+{{- end -}}
+{{- $excluded := .Values.openrouterCatalog.excludedModels | default list -}}
+{{- if ne (len $excluded) (len ($excluded | uniq)) }}{{- fail "openrouterCatalog.excludedModels must not contain duplicates" }}{{- end -}}
+{{- range $upstream := $excluded }}{{- if not (hasKey $catalogUpstreams $upstream) }}{{- fail (printf "openrouterCatalog.excludedModels contains unknown upstream model %q" $upstream) }}{{- end }}{{- end -}}
+{{- $allRoles := .Values.authKeycloak.agentgatewayClientRoles | default list | uniq -}}
+{{- if .Values.openrouterCatalog.enabled -}}
+{{- range $entry := .Values.openrouterCatalog.models | default list -}}
+{{- if not (has $entry.upstreamModel $excluded) }}{{- $allRoles = append $allRoles (printf "model:%s:invoke" $entry.name) }}{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- range $roles -}}
+{{- if not (regexMatch "^(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke)$" .) }}{{- fail (printf "invalid Dify AgentGateway managed-key permission %q" .) }}{{- end -}}
+{{- if not (has . $allRoles) }}{{- fail (printf "Dify AgentGateway managed-key permission %q is absent from authKeycloak.agentgatewayClientRoles" .) }}{{- end -}}
+{{- end -}}
+{{- $clientId := required "authKeycloak.difyAgentgatewayClientId is required" .Values.authKeycloak.difyAgentgatewayClientId -}}
+{{- $permissions := $roles | sortAlpha -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dify-managed-key-grants
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: dify-managed-keys
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  primary.json: >-
+    {{ dict "version" 2 "id" "dify-agentgateway-primary" "name" "dify-agentgateway" "principal" (dict "kind" "service_account" "client_id" $clientId) "permissions" $permissions | toJson }}
+  secondary.json: >-
+    {{ dict "version" 2 "id" "dify-agentgateway-secondary" "name" "dify-agentgateway" "principal" (dict "kind" "service_account" "client_id" $clientId) "permissions" $permissions | toJson }}

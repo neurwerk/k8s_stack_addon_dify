@@ -1,0 +1,9 @@
+authKeycloak:
+  agentgatewayClientRoles: []
+  difyAgentgatewayClientId: dify-agentgateway
+  difyAgentgatewayClientRoles: []
+
+openrouterCatalog:
+  enabled: true
+  excludedModels: []
+  models: []

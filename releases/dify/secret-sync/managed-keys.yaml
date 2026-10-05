@@ -1,0 +1,23 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: dify-managed-key-verifiers
+  namespace: auth-keycloak-api-key-bridge
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: auth-keycloak-api-key-bridge-openbao-secret-store
+    kind: SecretStore
+  target:
+    name: dify-managed-key-verifiers
+    creationPolicy: Owner
+    deletionPolicy: Retain
+  data:
+    - secretKey: difyAgentgatewayPrimaryVerifierSha256
+      remoteRef:
+        key: auth-keycloak-api-key-bridge/internal
+        property: difyAgentgatewayPrimaryVerifierSha256
+    - secretKey: difyAgentgatewaySecondaryVerifierSha256
+      remoteRef:
+        key: auth-keycloak-api-key-bridge/internal
+        property: difyAgentgatewaySecondaryVerifierSha256

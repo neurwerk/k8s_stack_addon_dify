@@ -17,12 +17,13 @@ The canonical repository is
 - `releases/namespaces/dify/`: Dify namespace.
 - `releases/dify/secret-sync/`: namespace-local OpenBao credential delivery.
 - `releases/dify/oidc/`: OIDC reconciliation.
+- `releases/dify/managed-keys/`: add-on-owned non-secret bridge grants.
 - `releases/dify/app/`: application releases and non-secret defaults.
 
 The release files use `GitRepository/dify-addon` in `flux-system`. The client
 supplies the source at an exact commit, namespace-local values, and ordered
 Flux stages. This is a staged package, **not an installable add-on yet**:
-database, roles, approval, and managed-key stages still need the agreed Base
+database, roles, approval, and managed-key stages still need compatible Base
 interfaces, and the application charts still pin the verified legacy GHCR
 API/Web digests. Do not select it until those stages are complete, the new
 API and Web image names have been published and verified, the chart pins have

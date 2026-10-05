@@ -1,0 +1,36 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: dify-managed-keys
+  namespace: auth-keycloak-api-key-bridge
+spec:
+  releaseName: dify-managed-keys
+  interval: 5m
+  timeout: 15m
+  install:
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 1m
+  upgrade:
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 1m
+  chart:
+    spec:
+      chart: ./charts/dify/managed-keys
+      sourceRef:
+        kind: GitRepository
+        name: dify-addon
+        namespace: flux-system
+      interval: 10m
+  valuesFrom:
+    - kind: ConfigMap
+      name: client-openrouter-catalog-values
+      valuesKey: values.yaml
+      optional: true
+    - kind: ConfigMap
+      name: client-values
+      valuesKey: values.yaml
+    - kind: ConfigMap
+      name: keycloak-product-values
+      valuesKey: values.yaml
