@@ -1,10 +1,10 @@
-# IMAGE SOURCE: ce-builder
+# IMAGE SOURCE: Neurwerk Dify add-on
 # Dify addon: langgenius/dify-api + Dify addon Keycloak OIDC overlay
 # Pinned here (chart defaults)
 # NOTE: apiImage is shared by api, beat, and worker pods — same image,
 #       differentiated by the MODE env var (api/beat/worker).
 frontendDify:
-  apiImage: ghcr.io/neurwerk/addon-dify-ce-builder-api:1.17.1-kc-v1@sha256:c5b486052d0da75aa140310511655c8a6f9f910f5179a55bcfdb3b1b88c70202
+  apiImage: ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f
   pullPolicy: IfNotPresent
   postgres:
     host: postgres-operations.infra-postgres-operations.svc.cluster.local

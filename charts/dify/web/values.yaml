@@ -1,8 +1,8 @@
-# IMAGE SOURCE: ce-builder
+# IMAGE SOURCE: Neurwerk Dify add-on
 # Dify addon: langgenius/dify-web + Dify addon Keycloak OIDC overlay
 # Pinned here (chart defaults)
 frontendDify:
-  webImage: ghcr.io/neurwerk/addon-dify-ce-builder-web:1.17.1-kc-v1@sha256:2de3b4ad387a8a77205b83f004a72f8d5ddc4e85ac40f1bdfe06747b24a47b8e
+  webImage: ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v1@sha256:05e5297b43855a8ea6b8ec2a1fe631567f8b25146075e9e9a8ece3abc3e638c9
   pullPolicy: IfNotPresent
   api:
     ports:

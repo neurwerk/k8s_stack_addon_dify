@@ -8,9 +8,12 @@ provenance, lint, chart templates and the separate namespace, secret-sync,
 database, access, OIDC, managed-key, certificate-approval and application
 Kustomize packages without installing anything.
 
-Before any future authorized installation, verify the agreed Base interfaces,
-published and verified API/Web image digests, exact add-on Git revision,
-client-owned values, secret delivery, and Flux dependency/readiness graph.
+The API and Web images are publicly published and independently verified at
+their chart pins; see the [README](../README.md#package-layout) for digests and
+source revision. Before any future authorized installation, verify the agreed
+Base and Tooling interfaces, a compatible published bridge image, exact add-on
+Git revision, client-owned values, safe database handoff, secret delivery, and
+Flux dependency/readiness graph.
 After an authorized rollout, inspect the source revision, Kustomizations,
 HelmReleases, warning events, application login and model access, and
 persistent state. Do not print Secret values or treat a ready Pod as proof that
