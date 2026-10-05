@@ -5,7 +5,8 @@ is no live Dify workload to inspect or migrate.
 
 For local package checks, run `mise exec -- make check`. It verifies source
 provenance, lint, chart templates and the separate namespace, secret-sync,
-database, OIDC and application Kustomize packages without installing anything.
+database, access, OIDC, managed-key, certificate-approval and application
+Kustomize packages without installing anything.
 
 Before any future authorized installation, verify the agreed Base interfaces,
 published and verified API/Web image digests, exact add-on Git revision,

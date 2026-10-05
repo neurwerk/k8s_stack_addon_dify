@@ -1,28 +1,37 @@
 # Installation status
 
 This add-on is staged, **not installable**. No Dify instance is running.
-Base must first publish the generic database chart, remove its hardcoded Dify
-provisioning, and provide agreed roles, approval, and managed-key interfaces.
+Base must first publish compatible generic database, Keycloak access, and
+managed-key bridge interfaces and stop owning the corresponding Dify resources
+and certificate policies. Tooling must support the access and verifier contracts.
 The new API and Web images must also be published and verified; the chart
 defaults retain legacy verified image digests. Do not select this source in a
 client or pin unpublished images.
 
-The package keeps five separate Flux paths:
+The package has these separate Flux paths:
 
 | Path | Contents |
 | --- | --- |
 | `releases/namespaces/dify/` | Namespace |
 | `releases/dify/secret-sync/` | OpenBao-backed runtime and OIDC secrets |
 | `releases/dify/database/` | PostgreSQL role/databases and consumer network access |
+| `releases/dify/access/` | Dify-owned Keycloak roles and access groups |
 | `releases/dify/oidc/` | Keycloak OIDC releases and defaults |
+| `releases/dify/managed-keys/` | Dify-owned bridge grants |
+| `releases/dify/certificate-approval/` | Public certificate approval and use RBAC |
 | `releases/dify/app/` | Dify component releases and defaults |
 
 `releases/dify/` indexes only `app/`; do not reconcile both paths or overlap
 their Flux inventories. The client owns the exact add-on source revision,
-namespace-local values and stage dependencies. Only after the missing Base
-interfaces and images are ready can the client order namespace, secret-sync,
-database, OIDC, and application stages with explicit readiness checks. The secret
-stage requires the existing operations namespace SecretStore and copied
+namespace-local values and stage dependencies. The client Flux graph must apply
+the namespace and namespace-local SecretStores before secret-sync, and wait for
+materialized Secrets before their consumers. It orders the database after
+secrets and the shared PostgreSQL release, access after Keycloak realm roles,
+OIDC after access, managed-key grants after OIDC, the bridge after grants and
+verifier Secret delivery, and the application after database, OIDC, bridge and
+certificate approval. Wait for current-generation Ready conditions; directory
+order alone does not provide readiness. The secret stage requires the existing
+operations namespace SecretStore and copied
 `infra-postgres-operations/internal:difyPassword` from
 `frontend-dify/internal:postgresPassword`; it must not wait for database readiness.
 The database stage requires the namespace-local `frontend-dify-postgres-password`
@@ -34,6 +43,28 @@ generic chart rejects existing objects without its ownership marker. First
 check actual database state and backup coverage and agree a safe handoff; do not
 drop or assume empty databases. Existing chart names, HelmRelease names, and
 GitRepository source references stay unchanged.
+
+## Certificate approval
+
+The certificate stage installs in `infra-cert-manager` after the Base
+approver-policy controller and CRD. It uses the existing `client-values`
+ConfigMap in that namespace: `dify.enabled: true` and `dify.hostname` select
+the exact public hostname; `frontendDify.hostname` must match the Gateway's
+existing value. Disabled creates no policy or RBAC. The two policies keep the
+old exact names and restrict issuance to `frontend-dify`, the selected hostname,
+the staging or production ClusterIssuer, a 90-day RSA-2048 key, and non-CA
+server usages. Only the cert-manager controller receives `use` permission.
+Base cleanup must first stop owning these policy names; the add-on does not
+install cert-manager, approver-policy, issuers, Gateway, or TLS Secret.
+
+Client Flux waits for the Base approver-policy and public issuer releases,
+then applies this stage and verifies its HelmRelease Ready at the current
+generation before the Dify web Gateway requests a certificate. The certificate
+stage is independent of PostgreSQL; database ingress belongs to the database
+stage. Other Dify workload egress and Keycloak configuration Job egress already
+belong to their workload charts. Do not manually approve a denied request:
+first verify policy readiness and request normal cert-manager renewal.
+
 ## Managed API keys (draft; do not select)
 
 The add-on owns `ConfigMap/dify-managed-key-grants` and the
@@ -79,6 +110,9 @@ bridge chart (#373), a published compatible bridge image (#26), Base Dify
 ownership removal (#375), and Tooling verifier ownership (#99) are coordinated.
 Those drafts do not authorize changing credentials, adopting a platform release,
 or selecting this add-on.
+
+## Keycloak access
+
 The access stage requires Base's `charts/keycloak/addon-access` and the existing
 `auth-keycloak-secret` with `adminPassword` before its Job runs. It waits for
 `keycloak-realm-roles`; the Job's configuration label and network policy allow
