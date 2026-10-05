@@ -1,0 +1,11 @@
+# =============================================================================
+# Chart: keycloak-oidc-configurations/dify
+#
+# Post-install Job that converges the Dify OIDC client to its desired secret.
+# =============================================================================
+apiVersion: v2
+name: dify
+description: Dify OIDC client configuration in Keycloak
+type: application
+version: 1.0.5
+appVersion: "1.0"

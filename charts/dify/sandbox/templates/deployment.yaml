@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-dify-sandbox-deployment
+  namespace: frontend-dify
+  annotations:
+    secret.reloader.stakater.com/reload: "frontend-dify-secret"
+  labels:
+    app.kubernetes.io/name: sandbox
+    app.kubernetes.io/instance: frontend-dify-sandbox
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  replicas: {{ .Values.frontendDify.sandbox.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sandbox
+      app.kubernetes.io/instance: frontend-dify-sandbox
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sandbox
+        app.kubernetes.io/instance: frontend-dify-sandbox
+        app.kubernetes.io/part-of: frontend-dify
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sandbox
+          image: {{ .Values.frontendDify.sandboxImage }}
+          imagePullPolicy: {{ .Values.frontendDify.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETGID", "SETUID", "SYS_CHROOT"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.frontendDify.sandbox.ports.container.http }}
+              protocol: TCP
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-secret
+                  key: SANDBOX_API_KEY
+            - name: GIN_MODE
+              value: release
+            - name: WORKER_TIMEOUT
+              value: "15"
+            - name: ENABLE_NETWORK
+              value: "false"
+            - name: SANDBOX_PORT
+              value: {{ .Values.frontendDify.sandbox.ports.container.http | quote }}
+          volumeMounts:
+            - name: dependencies
+              mountPath: /dependencies
+          resources:
+            {{- toYaml .Values.frontendDify.sandbox.resources | nindent 12 }}
+      volumes:
+        - name: dependencies
+          persistentVolumeClaim:
+            claimName: frontend-dify-sandbox-pvc

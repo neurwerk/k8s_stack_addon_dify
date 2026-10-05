@@ -1,0 +1,18 @@
+# ── Shared app defaults for all Dify components ────────────────────────────
+# Image versions are pinned in chart defaults (charts/dify/*/values.yaml),
+# not in this file. Override per-client by setting in the client repo.
+frontendDify:
+  config:
+    LOG_LEVEL: WARNING
+    STORAGE_TYPE: local
+    STORAGE_LOCAL_PATH: /app/api/storage
+    VECTOR_STORE: pgvector
+    ENABLE_SOCIAL_OAUTH_LOGIN: "true"
+    ALLOW_REGISTER: "false"
+    ALLOW_CREATE_WORKSPACE: "false"
+    ALLOW_SSO_REGISTER: "true"
+    ENFORCE_SINGLE_WORKSPACE: "true"
+    ENABLE_EMAIL_PASSWORD_LOGIN: "false"
+    ENABLE_EMAIL_CODE_LOGIN: "false"
+    AUTO_SETUP_ADMIN_EMAIL: "breakglass@place.holder"
+    DEFAULT_WORKSPACE_NAME: "default"

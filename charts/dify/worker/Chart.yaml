@@ -1,0 +1,6 @@
+apiVersion: v2
+name: frontend-dify-worker
+description: Dify Celery Worker — async task processing for Dify (custom CE Builder with Keycloak OIDC overlay)
+type: application
+version: 1.0.2
+appVersion: "1.17.1"

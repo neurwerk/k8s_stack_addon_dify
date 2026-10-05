@@ -1,0 +1,31 @@
+# IMAGE SOURCE: upstream
+# Pulled directly from: docker.io/langgenius/dify-plugin-daemon
+# Pinned here (chart defaults)
+frontendDify:
+  pluginDaemonImage: docker.io/langgenius/dify-plugin-daemon:0.6.10-local@sha256:34412a22d1e1d1a6c73727fef88cffbcdd9be7a21bf9ad3076b4bf5c1b88fd9b
+  pullPolicy: IfNotPresent
+  postgres:
+    host: postgres-operations.infra-postgres-operations.svc.cluster.local
+    servicePort: 5432
+    providerPodPort: 9712
+    user: dify
+    pluginDatabase: dify_plugin
+  pluginDaemon:
+    ports:
+      container: { http: 5002 }
+      service:   { http: 5002 }
+    replicas: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    # serverKey and difyInnerApiKey are sourced from the frontend-dify-secret (PLUGIN_DAEMON_KEY).
+    # These stubs are for documentation only; runtime values come from the ESO Secret.
+    serverKey: ""
+    difyInnerApiKey: ""
+  storage:
+    size: 5Gi
+    storageClassName: infra-rook-ceph-rbd

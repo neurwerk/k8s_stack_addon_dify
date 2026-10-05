@@ -1,0 +1,30 @@
+# IMAGE SOURCE: ce-builder
+# Dify addon: langgenius/dify-web + Dify addon Keycloak OIDC overlay
+# Pinned here (chart defaults)
+frontendDify:
+  webImage: ghcr.io/neurwerk/addon-dify-ce-builder-web:1.17.1-kc-v1@sha256:2de3b4ad387a8a77205b83f004a72f8d5ddc4e85ac40f1bdfe06747b24a47b8e
+  pullPolicy: IfNotPresent
+  api:
+    ports:
+      container: { http: 5001 }
+      service:   { http: 80 }
+  webGui:
+    ports:
+      container: { http: 3000 }
+      service:   { http: 80 }
+      gateway:   { tls: 443 }
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+  hostname: ""
+
+externalGateway:
+  enabled: false
+
+publicCertificates:
+  useProduction: false

@@ -1,0 +1,69 @@
+# IMAGE SOURCE: ce-builder
+# Dify addon: langgenius/dify-api + Dify addon Keycloak OIDC overlay
+# Pinned here (chart defaults)
+# NOTE: apiImage is shared by api, beat, and worker pods — same image,
+#       differentiated by the MODE env var (api/beat/worker).
+authKeycloak:
+  difyAgentgatewayClientRoles: []
+
+# Internal Traefik routing is the fail-closed default because canonical endpoint traffic should not require broad public egress.
+# Clients whose canonical endpoints resolve through public DNS must explicitly select public-dns.
+canonicalEndpointRouting:
+  mode: internal-traefik
+
+frontendDify:
+  apiImage: ghcr.io/neurwerk/addon-dify-ce-builder-api:1.17.1-kc-v1@sha256:c5b486052d0da75aa140310511655c8a6f9f910f5179a55bcfdb3b1b88c70202
+  pullPolicy: IfNotPresent
+  hostname: ""
+  postgres:
+    host: postgres-operations.infra-postgres-operations.svc.cluster.local
+    servicePort: 5432
+    providerPodPort: 9712
+    user: dify
+    database: dify
+    vectorDatabase: dify_vector
+  config:
+    MODE: api
+    LOG_LEVEL: WARNING
+    SERVER_WORKER_AMOUNT: "2"
+    STORAGE_TYPE: local
+    STORAGE_LOCAL_PATH: /app/api/storage
+    VECTOR_STORE: pgvector
+    PLUGIN_DAEMON_URL: http://frontend-dify-plugin-daemon-service:5002
+    SANDBOX_API_URL: http://frontend-dify-sandbox-service:8194
+    ENABLE_SOCIAL_OAUTH_LOGIN: "true"
+    ALLOW_REGISTER: "false"
+    ALLOW_CREATE_WORKSPACE: "false"
+    ALLOW_SSO_REGISTER: "true"
+    ENFORCE_SINGLE_WORKSPACE: "true"
+    ENABLE_EMAIL_PASSWORD_LOGIN: "false"
+    ENABLE_EMAIL_CODE_LOGIN: "false"
+    AUTO_SETUP_ADMIN_EMAIL: "breakglass@place.holder"
+    DEFAULT_WORKSPACE_NAME: "default"
+    # Serializes overlapping model-provider setup init containers through a
+    # PostgreSQL advisory lock. The HelmRelease timeout must cover this wait
+    # plus daemon, plugin installation, and provider validation.
+    DIFY_BOOTSTRAP_LOCK_TIMEOUT_SECONDS: "1800"
+  # The client selects the default model. The chart owns fixed provider adapter
+  # and Secret-reference wiring used by the setup-model-provider initContainer.
+  defaultModel:
+    name: ""
+    contextSize: ""
+  api:
+    ports:
+      container: { http: 5001 }
+      service:   { http: 80 }
+    replicas: 1
+    resources:
+      # 2 Gi / 2 000m is bare-minimum — 2 gevent workers + gevent gunicorn
+      # quickly saturate a single core under console bursts, causing probe
+      # timeouts and liveness kills even with timeoutSeconds: 5.
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 2Gi
+  storage:
+    size: 20Gi
+    storageClassName: infra-rook-ceph-rbd

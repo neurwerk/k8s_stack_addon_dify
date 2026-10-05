@@ -2,7 +2,7 @@
 # Base image arguments intentionally require digest-pinned values from deploy.sh.
 # =============================================================================
 # SPDX-License-Identifier: MIT
-# addon-dify-ce-builder - Dify CE API + Keycloak OIDC auth
+# k8s-stack-addon-dify - Dify CE API + Keycloak OIDC auth
 #
 # This image extends the langgenius/dify-api image by adding a Keycloak OAuth
 # provider that follows the same pattern as GitHub/Google OAuth.
@@ -19,8 +19,8 @@ ARG IMAGE_VERSION
 
 LABEL org.opencontainers.image.title="Neurwerk Dify CE API overlay" \
   org.opencontainers.image.description="Dify CE API with the Neurwerk overlay" \
-  org.opencontainers.image.source="https://github.com/neurwerk/addon_dify_ce_builder" \
-  org.opencontainers.image.url="https://github.com/neurwerk/addon_dify_ce_builder" \
+  org.opencontainers.image.source="https://github.com/neurwerk/k8s_stack_addon_dify" \
+  org.opencontainers.image.url="https://github.com/neurwerk/k8s_stack_addon_dify" \
   org.opencontainers.image.version="${IMAGE_VERSION}" \
   org.opencontainers.image.revision="${BUILDER_REVISION}" \
   org.opencontainers.image.base.name="${BASE_IMAGE}" \
@@ -33,15 +33,15 @@ USER root
 # Do not downgrade either dependency in the overlay.
 
 # Patch the pinned upstream service instead of replacing its changed modules.
-COPY overlay/api/neurwerk_sso.py /app/api/neurwerk_sso.py
-COPY overlay/api/neurwerk_settings.py /app/api/neurwerk_settings.py
-COPY overlay/api/migrations/versions/2025_06_06_1424-4474872b0ee6_workflow_draft_varaibles_add_node_execution_id.py /app/api/migrations/versions/2025_06_06_1424-4474872b0ee6_workflow_draft_varaibles_add_node_execution_id.py
-COPY overlay/scripts/patch_dify.py /tmp/patch_dify.py
+COPY customizations/api/neurwerk_sso.py /app/api/neurwerk_sso.py
+COPY customizations/api/neurwerk_settings.py /app/api/neurwerk_settings.py
+COPY customizations/api/migrations/versions/2025_06_06_1424-4474872b0ee6_workflow_draft_varaibles_add_node_execution_id.py /app/api/migrations/versions/2025_06_06_1424-4474872b0ee6_workflow_draft_varaibles_add_node_execution_id.py
+COPY customizations/scripts/patch_dify.py /tmp/patch_dify.py
 RUN python /tmp/patch_dify.py api /app/api && rm /tmp/patch_dify.py
-COPY overlay/scripts/ /app/api/scripts/
-COPY overlay/plugins/ /app/api/plugins-offline/
-COPY LICENSE NOTICE-CHANGES.md THIRD_PARTY_NOTICES.md /licenses/neurwerk-addon-dify-ce-builder/
-COPY LICENSES/ /licenses/neurwerk-addon-dify-ce-builder/LICENSES/
+COPY customizations/scripts/ /app/api/scripts/
+COPY customizations/plugins/ /app/api/plugins-offline/
+COPY LICENSE NOTICE-CHANGES.md THIRD_PARTY_NOTICES.md /licenses/neurwerk-k8s-stack-addon-dify/
+COPY LICENSES/ /licenses/neurwerk-k8s-stack-addon-dify/LICENSES/
 
 # Fix ownership
 RUN chown -R dify:dify \

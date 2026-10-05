@@ -15,7 +15,7 @@ Do not open a public issue for a suspected vulnerability and do not include
 credentials, tokens, personal data, or exploit details in public discussions.
 
 Report vulnerabilities privately through the canonical repository's
-[GitHub security advisory form](https://github.com/neurwerk/addon_dify_ce_builder/security/advisories/new).
+[GitHub security advisory form](https://github.com/neurwerk/k8s_stack_addon_dify/security/advisories/new).
 Include the affected overlay version or commit, Dify version, impact, and a
 minimal reproduction when safe to do so.
 

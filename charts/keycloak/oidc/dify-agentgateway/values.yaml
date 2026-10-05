@@ -1,0 +1,15 @@
+# IMAGE SOURCE: tooling
+authKeycloak:
+  agentgatewayClientId: agentgateway
+  difyAgentgatewayClientId: dify-agentgateway
+  agentgatewayClientRoles: []
+  difyAgentgatewayClientRoles: []
+
+openrouterCatalog:
+  enabled: true
+  excludedModels: []
+  grantToAccessGroups: false
+  models: []
+
+k8sTools:
+  image: ghcr.io/neurwerk/k8s-stack-tooling:0.7.2@sha256:bfc4d5e1d3e7009c23be9759ee91ef91e5befc8b42af7f743d13449b2b4973b6

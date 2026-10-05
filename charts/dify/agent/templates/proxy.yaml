@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-dify-agent-proxy-deployment
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: agent-proxy
+    app.kubernetes.io/instance: frontend-dify-agent
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-proxy
+      app.kubernetes.io/instance: frontend-dify-agent
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/proxy-config.yaml") . | sha256sum }}
+      labels:
+        app.kubernetes.io/name: agent-proxy
+        app.kubernetes.io/instance: frontend-dify-agent
+        app.kubernetes.io/part-of: frontend-dify
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: agent-proxy
+          image: {{ .Values.frontendDify.agent.proxyImage | quote }}
+          imagePullPolicy: {{ .Values.frontendDify.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args: ["/usr/sbin/squid -Nz && exec /usr/sbin/squid -f /etc/squid/squid.conf -NYC 1"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          ports:
+            - name: proxy
+              containerPort: 3128
+          volumeMounts:
+            - name: config
+              mountPath: /etc/squid/squid.conf
+              subPath: squid.conf
+              readOnly: true
+            - name: cache
+              mountPath: /var/spool/squid
+            - name: logs
+              mountPath: /var/log/squid
+          startupProbe:
+            tcpSocket: { port: proxy }
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket: { port: proxy }
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket: { port: proxy }
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.frontendDify.agent.proxy.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: frontend-dify-agent-proxy-config
+        - name: cache
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}

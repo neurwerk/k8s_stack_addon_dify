@@ -1,0 +1,81 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-dify-plugin-daemon-egress
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: plugin-daemon
+    app.kubernetes.io/instance: frontend-dify-plugin-daemon
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: plugin-daemon
+      app.kubernetes.io/instance: frontend-dify-plugin-daemon
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: infra-postgres-operations
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres-operations
+              app.kubernetes.io/instance: postgres-operations
+      ports:
+        - port: {{ .Values.frontendDify.postgres.providerPodPort }}
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+              app.kubernetes.io/instance: frontend-dify-redis
+      ports:
+        - port: 6379
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: api
+              app.kubernetes.io/instance: frontend-dify-api
+      ports:
+        - port: 5001
+          protocol: TCP
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: infra-agentgateway
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: infra-agentgateway-gateway
+              gateway.networking.k8s.io/gateway-name: infra-agentgateway-gateway
+      ports:
+        - port: 80
+          protocol: TCP
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 100.64.0.0/10
+              - 127.0.0.0/8
+              - 169.254.0.0/16
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 224.0.0.0/4
+      ports:
+        - port: 443
+          protocol: TCP

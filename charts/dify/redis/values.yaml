@@ -1,0 +1,19 @@
+# IMAGE SOURCE: upstream
+# Pulled directly from: docker.io/redis
+# Pinned here (chart defaults)
+frontendDify:
+  redisImage: docker.io/redis:7-alpine
+  pullPolicy: IfNotPresent
+  redis:
+    ports:
+      container: { redis: 6379 }
+      service:   { redis: 6379 }
+    storage: 5Gi
+    storageClassName: infra-rook-ceph-rbd
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi

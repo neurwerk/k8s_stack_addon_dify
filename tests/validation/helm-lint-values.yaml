@@ -1,0 +1,21 @@
+authKeycloak:
+  adminUser: lint-admin
+  realm: lint
+  hostname: keycloak.example.test
+  difyClientId: dify
+  difyAgentgatewayClientId: dify-agentgateway
+  difyRedirectUri: https://dify.example.test/console/api/oauth/authorize/keycloak
+  difyWebOrigin: https://dify.example.test
+  agentgatewayClientRoles:
+    - llm:invoke
+    - model:remote/example/model:invoke
+  difyAgentgatewayClientRoles:
+    - llm:invoke
+    - model:remote/example/model:invoke
+frontendDify:
+  hostname: dify.example.test
+  postgres:
+    user: dify
+    database: dify
+  config:
+    AUTO_SETUP_ADMIN_EMAIL: admin@example.test

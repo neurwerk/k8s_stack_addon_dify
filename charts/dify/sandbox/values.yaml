@@ -1,0 +1,21 @@
+# IMAGE SOURCE: upstream
+# Pulled directly from: docker.io/langgenius/dify-sandbox
+# Pinned here (chart defaults)
+frontendDify:
+  sandboxImage: docker.io/langgenius/dify-sandbox:0.2.15
+  pullPolicy: IfNotPresent
+  sandbox:
+    ports:
+      container: { http: 8194 }
+      service:   { http: 8194 }
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+  storage:
+    dependenciesSize: 2Gi
+    storageClassName: infra-rook-ceph-rbd

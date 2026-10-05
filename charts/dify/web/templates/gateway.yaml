@@ -1,0 +1,36 @@
+{{- if .Values.externalGateway.enabled }}
+{{- $hostname := required "external Gateway hostname is required" .Values.frontendDify.hostname }}
+{{- if eq $hostname "place.holder" }}{{ fail "place.holder cannot be used for an external Gateway" }}{{ end }}
+{{- $issuer := ternary "letsencrypt-production-cluster-issuer" "letsencrypt-staging-cluster-issuer" .Values.publicCertificates.useProduction }}
+# =============================================================================
+# Dify Web GUI Gateway
+# =============================================================================
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: frontend-dify-web-gui-gateway
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: web-gui
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: frontend-dify
+  annotations:
+    cert-manager.io/cluster-issuer: {{ $issuer | quote }}
+    cert-manager.io/duration: "2160h"
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: websecure
+      port: {{ .Values.frontendDify.webGui.ports.gateway.tls }}
+      protocol: HTTPS
+      hostname: {{ $hostname }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: frontend-dify-web-gui-tls
+            kind: Secret
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: Same
+{{- end }}

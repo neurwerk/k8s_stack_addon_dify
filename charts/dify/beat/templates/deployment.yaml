@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-dify-beat-deployment
+  namespace: frontend-dify
+  annotations:
+    secret.reloader.stakater.com/reload: "frontend-dify-secret,frontend-dify-openbao-secret"
+  labels:
+    app.kubernetes.io/name: beat
+    app.kubernetes.io/instance: frontend-dify-beat
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  replicas: {{ .Values.frontendDify.beat.replicas }}
+  strategy:
+    type: Recreate
+    # Explicitly clear the field left by the previous RollingUpdate strategy.
+    rollingUpdate: null
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: beat
+      app.kubernetes.io/instance: frontend-dify-beat
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: beat
+        app.kubernetes.io/instance: frontend-dify-beat
+        app.kubernetes.io/part-of: frontend-dify
+    spec:
+      containers:
+        - name: beat
+          image: {{ .Values.frontendDify.apiImage }}
+          imagePullPolicy: {{ .Values.frontendDify.pullPolicy }}
+          env:
+            - name: MODE
+              value: {{ .Values.frontendDify.config.MODE | quote }}
+            - name: DB_HOST
+              value: {{ .Values.frontendDify.postgres.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.frontendDify.postgres.servicePort | quote }}
+            - name: REDIS_HOST
+              value: frontend-dify-redis-service
+            - name: REDIS_PORT
+              value: "6379"
+            - name: DB_USERNAME
+              value: {{ .Values.frontendDify.postgres.user | quote }}
+            - name: DB_DATABASE
+              value: {{ .Values.frontendDify.postgres.database | quote }}
+            - name: PGSSLMODE
+              value: disable
+            - name: LOG_LEVEL
+              value: {{ .Values.frontendDify.config.LOG_LEVEL | quote }}
+            - name: KEYCLOAK_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-openbao-secret
+                  key: KEYCLOAK_OIDC_CLIENT_SECRET
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-secret
+                  key: REDIS_PASSWORD
+            - name: CELERY_BROKER_URL
+              value: redis://:$(REDIS_PASSWORD)@frontend-dify-redis-service:6379/0
+          envFrom:
+            - secretRef:
+                name: frontend-dify-secret
+          resources:
+            {{- toYaml .Values.frontendDify.beat.resources | nindent 12 }}
