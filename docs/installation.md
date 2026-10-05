@@ -79,3 +79,21 @@ bridge chart (#373), a published compatible bridge image (#26), Base Dify
 ownership removal (#375), and Tooling verifier ownership (#99) are coordinated.
 Those drafts do not authorize changing credentials, adopting a platform release,
 or selecting this add-on.
+The access stage requires Base's `charts/keycloak/addon-access` and the existing
+`auth-keycloak-secret` with `adminPassword` before its Job runs. It waits for
+`keycloak-realm-roles`; the Job's configuration label and network policy allow
+DNS and access to the Keycloak service after the server is ready. The selected
+client must supply namespace-local `auth-keycloak/dify-keycloak-access-values`
+(`values.yaml`) with `k8sTools.image` set to a published, verified image that
+supports `KC_REALM_ROLE_COMPOSITE_OWNERSHIP`. That same image must be pinned in
+Base's realm-role Job. Do not use an older image or select this stage before
+Base removes its Dify role and group ownership; otherwise concurrent reconcilers
+can undo one another's grants. Preserve the existing `dify-user`, `dify-admin`,
+`/access/neurwerk-dify-users`, and `/access/neurwerk-dify-admins` identities.
+`addonAccess.platformAdminGrant` defaults to `true`; a client may set only this
+grant to `false` in the access values to remove Dify's own direct `dify-admin`
+grant from `platform-admin` without changing other products' grants. Model and
+MCP permissions remain separate. Client Flux stages must wait for the access
+HelmRelease to become Ready before OIDC, then wait for OIDC before the app.
+Neither removing the stage nor changing the grant removes existing group
+memberships or already issued tokens.
