@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: auth-keycloak-dify-oidc-egress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: dify-oidc
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: auth-keycloak
+spec:
+  podSelector:
+    matchLabels:
+      app: auth-keycloak-dify-oidc-job
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              app: auth-keycloak-keycloak-app
+      ports:
+        - port: 8080
+          protocol: TCP
+        - port: 9000
+          protocol: TCP

@@ -1,0 +1,29 @@
+# IMAGE SOURCE: ce-builder
+# Dify addon: langgenius/dify-api + Dify addon Keycloak OIDC overlay
+# Pinned here (chart defaults)
+# NOTE: apiImage is shared by api, beat, and worker pods — same image,
+#       differentiated by the MODE env var (api/beat/worker).
+frontendDify:
+  apiImage: ghcr.io/neurwerk/addon-dify-ce-builder-api:1.17.1-kc-v1@sha256:c5b486052d0da75aa140310511655c8a6f9f910f5179a55bcfdb3b1b88c70202
+  pullPolicy: IfNotPresent
+  postgres:
+    host: postgres-operations.infra-postgres-operations.svc.cluster.local
+    servicePort: 5432
+    providerPodPort: 9712
+    user: dify
+    database: dify
+  config:
+    MODE: beat
+    LOG_LEVEL: WARNING
+  beat:
+    replicas: 1
+    # Runs the same heavy api image as worker/api (MODE=beat) — celery beat
+    # imports the full Flask app at startup and OOMs below ~512Mi.
+    # Keep in sync with the worker resources.
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi

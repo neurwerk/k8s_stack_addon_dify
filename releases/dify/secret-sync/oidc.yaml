@@ -1,0 +1,23 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: dify-oidc-secret
+  namespace: auth-keycloak
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: auth-keycloak-openbao-secret-store
+    kind: SecretStore
+  target:
+    name: dify-oidc-secret
+    creationPolicy: Owner
+    deletionPolicy: Retain
+  data:
+    - secretKey: difyOidcClientSecret
+      remoteRef:
+        key: auth-keycloak/internal
+        property: difyOidcClientSecret
+    - secretKey: difyAgentgatewayClientSecret
+      remoteRef:
+        key: auth-keycloak/internal
+        property: difyAgentgatewayClientSecret

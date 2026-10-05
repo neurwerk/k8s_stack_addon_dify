@@ -1,0 +1,26 @@
+# IMAGE SOURCE: none
+# This chart owns configuration and Secret wiring only; it declares no images.
+# ── Shared resource stubs ──────────────────────────────────────────────────
+# All values here are just stubs — they are overridden via the HelmRelease
+# valuesFrom chain (ConfigMaps + the OpenBao-backed input Secret).
+
+# Secret values sourced from frontend-dify-runtime-secret, which ESO owns.
+difySecrets:
+  SECRET_KEY: ""
+  POSTGRES_PASSWORD: ""
+  REDIS_PASSWORD: ""
+  SANDBOX_API_KEY: ""
+  PLUGIN_DAEMON_KEY: ""
+  DIFY_AGENT_API_TOKEN: ""
+  DIFY_AGENT_SERVER_SECRET_KEY: ""
+  DIFY_AGENT_SANDBOX_AUTH_TOKEN: ""
+
+# Auth Keycloak — sourced from shared-oidc-clients-config-map
+authKeycloak:
+  hostname: ""
+  realm: ""
+  difyClientId: ""
+
+# AgentGateway — sourced from shared-hostnames-config-map
+infraAgentgatewayWrapper:
+  hostname: ""

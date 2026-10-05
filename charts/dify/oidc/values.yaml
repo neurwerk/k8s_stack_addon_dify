@@ -1,0 +1,13 @@
+# IMAGE SOURCE: tooling
+# k8sTools is a pinned neurwerk image used by this OIDC bootstrap Job.
+# =============================================================================
+# values.yaml — keycloak-oidc-configurations/dify
+# =============================================================================
+
+authKeycloak:
+  difyClientId: dify
+  # difyRedirectUri: "" => set in client_*/config/client.yaml
+  # difyWebOrigin: "" => set in client_*/config/client.yaml
+
+k8sTools:
+  image: ghcr.io/neurwerk/k8s-stack-tooling:0.7.2@sha256:bfc4d5e1d3e7009c23be9759ee91ef91e5befc8b42af7f743d13449b2b4973b6

@@ -50,4 +50,4 @@ deploy.sh
 
 # Only checked, intentionally bundled plugin packages enter the context.
 *.difypkg
-!overlay/plugins/*.difypkg
+!customizations/plugins/*.difypkg

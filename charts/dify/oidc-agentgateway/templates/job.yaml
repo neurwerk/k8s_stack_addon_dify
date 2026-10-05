@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: auth-keycloak-dify-agentgateway-oidc-job
+  namespace: auth-keycloak
+  labels:
+    app.kubernetes.io/name: dify-agentgateway-oidc
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: auth-keycloak
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app: auth-keycloak-dify-agentgateway-oidc-job
+        app.kubernetes.io/name: dify-agentgateway-oidc
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/part-of: auth-keycloak
+        app.kubernetes.io/component: configuration
+    spec:
+      serviceAccountName: auth-keycloak-dify-agentgateway-oidc-service-account
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: {{ (.Values.k8sTools).image | quote }}
+          command: ["upsert-oidc-client"]
+          env:
+            - name: KC_INTERNAL_URL
+              value: "http://auth-keycloak-keycloak-service.auth-keycloak.svc.cluster.local"
+            - name: KC_ADMIN_USER
+              value: {{ required "authKeycloak.adminUser is required" .Values.authKeycloak.adminUser | quote }}
+            - name: KC_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: auth-keycloak-secret
+                  key: adminPassword
+            - name: KC_REALM
+              value: {{ required "authKeycloak.realm is required" .Values.authKeycloak.realm | quote }}
+            - name: KC_CLIENT_ID
+              value: {{ .Values.authKeycloak.difyAgentgatewayClientId | quote }}
+            - name: KC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: dify-oidc-secret
+                  key: difyAgentgatewayClientSecret
+            - name: KC_REDIRECT_URI
+              value: ""
+            - name: KC_WEB_ORIGIN
+              value: ""
+            - name: KC_STANDARD_FLOW_ENABLED
+              value: "false"
+            - name: KC_DIRECT_ACCESS_GRANTS_ENABLED
+              value: "false"
+            - name: KC_SERVICE_ACCOUNTS_ENABLED
+              value: "true"
+            {{- $roles := .Values.authKeycloak.difyAgentgatewayClientRoles | default list }}
+            {{- $allRoles := include "keycloak-dify-agentgateway.effectiveRoles" . | fromYamlArray }}
+            {{- if not (has "llm:invoke" $roles) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must include llm:invoke" }}{{- end }}
+            {{- if ne (len $roles) (len ($roles | uniq)) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must not contain duplicates" }}{{- end }}
+            {{- $agentgatewayClientId := required "authKeycloak.agentgatewayClientId is required" .Values.authKeycloak.agentgatewayClientId }}
+            {{- $serviceRoles := list }}
+            {{- range ($roles | sortAlpha) }}
+            {{- if not (regexMatch "^(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke)$" .) }}{{- fail (printf "invalid Dify AgentGateway role %q" .) }}{{- end }}
+            {{- if not (has . $allRoles) }}{{- fail (printf "Dify AgentGateway role %q is absent from authKeycloak.agentgatewayClientRoles" .) }}{{- end }}
+            {{- $serviceRoles = append $serviceRoles (dict "clientId" $agentgatewayClientId "roleName" .) }}
+            {{- end }}
+            - name: KC_SERVICE_ACCOUNT_ROLES
+              value: {{ $serviceRoles | toJson | quote }}
+            - name: KC_LOG_PREFIX
+              value: "keycloak-dify-agentgateway-oidc"

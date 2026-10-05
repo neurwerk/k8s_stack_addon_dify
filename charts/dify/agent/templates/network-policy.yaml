@@ -1,0 +1,174 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-dify-agent-sandbox-isolation
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: agent-sandbox
+    app.kubernetes.io/instance: frontend-dify-agent
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agent-sandbox
+      app.kubernetes.io/instance: frontend-dify-agent
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-backend
+              app.kubernetes.io/instance: frontend-dify-agent
+      ports:
+        - { protocol: TCP, port: 5004 }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-proxy
+              app.kubernetes.io/instance: frontend-dify-agent
+      ports:
+        - { protocol: TCP, port: 3128 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-dify-agent-proxy-isolation
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: agent-proxy
+    app.kubernetes.io/instance: frontend-dify-agent
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agent-proxy
+      app.kubernetes.io/instance: frontend-dify-agent
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-sandbox
+              app.kubernetes.io/instance: frontend-dify-agent
+      ports:
+        - { protocol: TCP, port: 3128 }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-backend
+              app.kubernetes.io/instance: frontend-dify-agent
+      ports:
+        - { protocol: TCP, port: 5050 }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: api
+              app.kubernetes.io/instance: frontend-dify-api
+      ports:
+        - { protocol: TCP, port: 5001 }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4]
+      ports:
+        - { protocol: TCP, port: 80 }
+        - { protocol: TCP, port: 443 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-dify-agent-backend-isolation
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: agent-backend
+    app.kubernetes.io/instance: frontend-dify-agent
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: agent-backend
+      app.kubernetes.io/instance: frontend-dify-agent
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: api
+              app.kubernetes.io/instance: frontend-dify-api
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: worker
+              app.kubernetes.io/instance: frontend-dify-worker
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-proxy
+              app.kubernetes.io/instance: frontend-dify-agent
+      ports:
+        - { protocol: TCP, port: 5050 }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+              app.kubernetes.io/instance: frontend-dify-redis
+      ports:
+        - { protocol: TCP, port: 6379 }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: plugin-daemon
+              app.kubernetes.io/instance: frontend-dify-plugin-daemon
+      ports:
+        - { protocol: TCP, port: 5002 }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: api
+              app.kubernetes.io/instance: frontend-dify-api
+      ports:
+        - { protocol: TCP, port: 5001 }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-sandbox
+              app.kubernetes.io/instance: frontend-dify-agent
+      ports:
+        - { protocol: TCP, port: 5004 }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4]
+      ports:
+        - { protocol: TCP, port: 443 }

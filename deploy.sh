@@ -6,11 +6,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
-API_IMAGE="ghcr.io/neurwerk/addon-dify-ce-builder-api"
-WEB_IMAGE="ghcr.io/neurwerk/addon-dify-ce-builder-web"
-API_REPOSITORY="neurwerk/addon-dify-ce-builder-api"
-WEB_REPOSITORY="neurwerk/addon-dify-ce-builder-web"
-SOURCE_URL="https://github.com/neurwerk/addon_dify_ce_builder"
+API_IMAGE="ghcr.io/neurwerk/k8s-stack-addon-dify-api"
+WEB_IMAGE="ghcr.io/neurwerk/k8s-stack-addon-dify-web"
+API_REPOSITORY="neurwerk/k8s-stack-addon-dify-api"
+WEB_REPOSITORY="neurwerk/k8s-stack-addon-dify-web"
+SOURCE_URL="https://github.com/neurwerk/k8s_stack_addon_dify"
 NODE_IMAGE="docker.io/library/node:24.20.0-alpine"
 ALPINE_IMAGE="docker.io/library/alpine:3.21"
 
@@ -96,9 +96,9 @@ verify_canonical_source() {
 
   origin_url="$(git remote get-url origin 2>/dev/null || true)"
   case "${origin_url}" in
-    git@github.com:neurwerk/addon_dify_ce_builder.git | \
-      https://github.com/neurwerk/addon_dify_ce_builder | \
-      https://github.com/neurwerk/addon_dify_ce_builder.git) ;;
+    git@github.com:neurwerk/k8s_stack_addon_dify.git | \
+      https://github.com/neurwerk/k8s_stack_addon_dify | \
+      https://github.com/neurwerk/k8s_stack_addon_dify.git) ;;
     *)
       printf 'ERROR: origin must be the canonical repository, not %s.\n' \
         "${origin_url:-an unset remote}" >&2

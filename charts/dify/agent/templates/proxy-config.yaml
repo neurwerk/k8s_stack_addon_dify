@@ -1,0 +1,43 @@
+# Only the Agent Stub and signed file routes are reachable inside the cluster.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-dify-agent-proxy-config
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: agent-proxy
+    app.kubernetes.io/instance: frontend-dify-agent
+    app.kubernetes.io/part-of: frontend-dify
+data:
+  squid.conf: |
+    http_port 3128
+    pid_filename /tmp/squid.pid
+    coredump_dir /tmp
+    access_log none
+    cache deny all
+    acl safe_ports port 80 443 5050
+    acl ssl_ports port 443
+    acl connect method CONNECT
+    acl agent_backend dstdomain frontend-dify-agent-backend-service
+    acl dify_api dstdomain frontend-dify-api-service
+    acl agent_stub urlpath_regex -i ^/agent-stub/
+    acl signed_files urlpath_regex -i ^/files/
+    acl private_nets dst 0.0.0.0/8
+    acl private_nets dst 10.0.0.0/8
+    acl private_nets dst 100.64.0.0/10
+    acl private_nets dst 127.0.0.0/8
+    acl private_nets dst 169.254.0.0/16
+    acl private_nets dst 172.16.0.0/12
+    acl private_nets dst 192.168.0.0/16
+    acl private_nets dst 224.0.0.0/4
+    acl private_nets dst 240.0.0.0/4
+    acl private_nets dst ::/128
+    acl private_nets dst ::1/128
+    acl private_nets dst fc00::/7
+    acl private_nets dst fe80::/10
+    http_access deny !safe_ports
+    http_access deny connect !ssl_ports
+    http_access allow agent_backend agent_stub
+    http_access allow dify_api signed_files
+    http_access deny private_nets
+    http_access allow all

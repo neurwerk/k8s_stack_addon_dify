@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-dify-agent-backend-deployment
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: agent-backend
+    app.kubernetes.io/instance: frontend-dify-agent
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-backend
+      app.kubernetes.io/instance: frontend-dify-agent
+  template:
+    metadata:
+      annotations:
+        secret.reloader.stakater.com/reload: frontend-dify-secret
+      labels:
+        app.kubernetes.io/name: agent-backend
+        app.kubernetes.io/instance: frontend-dify-agent
+        app.kubernetes.io/part-of: frontend-dify
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: agent-backend
+          image: {{ .Values.frontendDify.agent.backendImage | quote }}
+          imagePullPolicy: {{ .Values.frontendDify.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          ports:
+            - name: http
+              containerPort: 5050
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: REDIS_PASSWORD }
+            - name: DIFY_AGENT_REDIS_URL
+              value: redis://:$(REDIS_PASSWORD)@frontend-dify-redis-service:6379/2
+            - name: DIFY_AGENT_PLUGIN_DAEMON_URL
+              value: http://frontend-dify-plugin-daemon-service:5002
+            - name: DIFY_AGENT_PLUGIN_DAEMON_API_KEY
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: PLUGIN_DAEMON_KEY }
+            - name: DIFY_AGENT_INNER_API_URL
+              value: http://frontend-dify-api-service:80
+            - name: DIFY_AGENT_INNER_API_KEY
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: PLUGIN_DAEMON_KEY }
+            - name: DIFY_AGENT_API_TOKEN
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: DIFY_AGENT_API_TOKEN }
+            - name: DIFY_AGENT_SERVER_SECRET_KEY
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: DIFY_AGENT_SERVER_SECRET_KEY }
+            - name: DIFY_AGENT_RUNTIME_BACKEND
+              value: local
+            - name: DIFY_AGENT_LOCAL_SANDBOX_ENDPOINT
+              value: http://frontend-dify-agent-sandbox-service:5004
+            - name: DIFY_AGENT_LOCAL_SANDBOX_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: DIFY_AGENT_SANDBOX_AUTH_TOKEN }
+            - name: DIFY_AGENT_STUB_API_BASE_URL
+              value: http://frontend-dify-agent-backend-service:5050/agent-stub
+            - name: DIFY_AGENT_SANDBOX_FILES_BASE_URL
+              value: http://frontend-dify-api-service:80
+          startupProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.frontendDify.agent.backend.resources | nindent 12 }}

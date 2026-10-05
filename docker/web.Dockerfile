@@ -2,9 +2,9 @@
 # Base image arguments intentionally require digest-pinned values from deploy.sh.
 # =============================================================================
 # SPDX-License-Identifier: MIT
-# addon-dify-ce-builder-web - Dify CE Web + Keycloak SSO login button
+# k8s-stack-addon-dify-web - Dify CE Web + Keycloak SSO login button
 #
-# Builds Dify Web from pinned source with overlay/web/ patches applied before
+# Builds Dify Web from pinned source with customizations/web/ patches applied before
 # the Next.js build. (The previous version of this Dockerfile copied .tsx
 # sources into the prebuilt upstream image, where they were never compiled;
 # the served bundle stayed stock upstream.)
@@ -57,8 +57,8 @@ WORKDIR /app
 COPY --from=packages /app/ .
 COPY --from=source /src/ .
 # The Keycloak SSO sign-in UI must be in place before `next build`.
-COPY overlay/web/app/signin/components/sso-redirect.tsx /app/web/app/signin/components/sso-redirect.tsx
-COPY overlay/scripts/patch_dify.py /tmp/patch_dify.py
+COPY customizations/web/app/signin/components/sso-redirect.tsx /app/web/app/signin/components/sso-redirect.tsx
+COPY customizations/scripts/patch_dify.py /tmp/patch_dify.py
 RUN python3 /tmp/patch_dify.py web /app/web && rm /tmp/patch_dify.py
 WORKDIR /app/web
 ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -80,8 +80,8 @@ ARG ALPINE_IMAGE_DIGEST
 
 LABEL org.opencontainers.image.title="Neurwerk Dify CE Web overlay" \
   org.opencontainers.image.description="Dify CE Web with the Neurwerk overlay" \
-  org.opencontainers.image.source="https://github.com/neurwerk/addon_dify_ce_builder" \
-  org.opencontainers.image.url="https://github.com/neurwerk/addon_dify_ce_builder" \
+  org.opencontainers.image.source="https://github.com/neurwerk/k8s_stack_addon_dify" \
+  org.opencontainers.image.url="https://github.com/neurwerk/k8s_stack_addon_dify" \
   org.opencontainers.image.version="${IMAGE_VERSION}" \
   org.opencontainers.image.revision="${BUILDER_REVISION}" \
   org.opencontainers.image.base.name="${NODE_IMAGE_NAME}" \
@@ -120,8 +120,8 @@ COPY --from=builder --chown=dify:dify /app/web/.next/static ./targets/next/web/.
 COPY --from=builder --chown=dify:dify /app/web/dist/standalone ./targets/vinext
 
 COPY --from=source --chown=dify:dify --chmod=755 /src/web/docker/entrypoint.sh ./entrypoint.sh
-COPY --chown=dify:dify LICENSE NOTICE-CHANGES.md THIRD_PARTY_NOTICES.md /licenses/neurwerk-addon-dify-ce-builder/
-COPY --chown=dify:dify LICENSES/ /licenses/neurwerk-addon-dify-ce-builder/LICENSES/
+COPY --chown=dify:dify LICENSE NOTICE-CHANGES.md THIRD_PARTY_NOTICES.md /licenses/neurwerk-k8s-stack-addon-dify/
+COPY --chown=dify:dify LICENSES/ /licenses/neurwerk-k8s-stack-addon-dify/LICENSES/
 
 ARG COMMIT_SHA
 ENV COMMIT_SHA=${COMMIT_SHA}

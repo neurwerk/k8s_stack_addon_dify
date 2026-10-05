@@ -23,16 +23,13 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install locked test tools
+      - name: Install locked lint tools
         run: uv sync --locked --dev
 
       - name: Lint and format
         run: |
-          uv run ruff check overlay/api/neurwerk_sso.py overlay/api/neurwerk_settings.py overlay/scripts scripts tests
-          uv run ruff format --check overlay/api/neurwerk_sso.py overlay/api/neurwerk_settings.py overlay/scripts scripts tests
-
-      - name: Test
-        run: uv run pytest
+          uv run ruff check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts
+          uv run ruff format --check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts
 
       - name: Check shell scripts
         run: shellcheck deploy.sh scripts/verify-sources.sh

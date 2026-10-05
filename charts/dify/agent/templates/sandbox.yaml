@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-dify-agent-sandbox-deployment
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: agent-sandbox
+    app.kubernetes.io/instance: frontend-dify-agent
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-sandbox
+      app.kubernetes.io/instance: frontend-dify-agent
+  template:
+    metadata:
+      annotations:
+        secret.reloader.stakater.com/reload: frontend-dify-secret
+      labels:
+        app.kubernetes.io/name: agent-sandbox
+        app.kubernetes.io/instance: frontend-dify-agent
+        app.kubernetes.io/part-of: frontend-dify
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: agent-sandbox
+          image: {{ .Values.frontendDify.agent.sandboxImage | quote }}
+          imagePullPolicy: {{ .Values.frontendDify.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          ports:
+            - name: http
+              containerPort: 5004
+          env:
+            - name: SHELLCTL_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: DIFY_AGENT_SANDBOX_AUTH_TOKEN }
+            - name: HTTP_PROXY
+              value: http://frontend-dify-agent-proxy-service:3128
+            - name: HTTPS_PROXY
+              value: http://frontend-dify-agent-proxy-service:3128
+            - name: http_proxy
+              value: http://frontend-dify-agent-proxy-service:3128
+            - name: https_proxy
+              value: http://frontend-dify-agent-proxy-service:3128
+            - name: NO_PROXY
+              value: localhost,127.0.0.1
+            - name: no_proxy
+              value: localhost,127.0.0.1
+          volumeMounts:
+            - name: files
+              mountPath: /home/dify
+              subPath: home
+            - name: files
+              mountPath: /workspace
+              subPath: workspace
+          startupProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.frontendDify.agent.sandbox.resources | nindent 12 }}
+      volumes:
+        - name: files
+          persistentVolumeClaim:
+            claimName: frontend-dify-agent-sandbox-pvc

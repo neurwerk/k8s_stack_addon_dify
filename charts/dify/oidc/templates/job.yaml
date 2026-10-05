@@ -1,0 +1,69 @@
+# =============================================================================
+# Dify OIDC configuration Job
+#
+# Converges the Dify OIDC client to the desired OpenBao-managed secret.
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: auth-keycloak-dify-oidc-job
+  namespace: auth-keycloak
+  labels:
+    app.kubernetes.io/name: dify-oidc
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: auth-keycloak
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-3"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      name: auth-keycloak-dify-oidc-job
+      labels:
+        app: auth-keycloak-dify-oidc-job
+        job: auth-keycloak-dify-oidc-job
+        app.kubernetes.io/name: dify-oidc
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/part-of: auth-keycloak
+        app.kubernetes.io/component: configuration
+    spec:
+      serviceAccountName: auth-keycloak-dify-oidc-service-account
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: {{ (.Values.k8sTools).image | quote }}
+          command:
+            - upsert-oidc-client
+          env:
+            - name: KC_INTERNAL_URL
+              value: "http://auth-keycloak-keycloak-service.auth-keycloak.svc.cluster.local"
+            - name: KC_ADMIN_USER
+              value: {{ required "authKeycloak.adminUser is required" .Values.authKeycloak.adminUser | quote }}
+            - name: KC_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: auth-keycloak-secret
+                  key: adminPassword
+            - name: KC_REALM
+              value: {{ required "authKeycloak.realm is required" .Values.authKeycloak.realm | quote }}
+            - name: KC_CLIENT_ID
+              value: {{ .Values.authKeycloak.difyClientId | quote }}
+            - name: KC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: dify-oidc-secret
+                  key: difyOidcClientSecret
+            - name: KC_REDIRECT_URI
+              value: {{ .Values.authKeycloak.difyRedirectUri | quote }}
+            - name: KC_WEB_ORIGIN
+              value: {{ .Values.authKeycloak.difyWebOrigin | quote }}
+            - name: KC_REFRESH_TOKEN_ROTATION_ENABLED
+              value: "true"
+            - name: KC_CLIENT_AUDIENCES
+              value: '["dify"]'
+            - name: KC_LOG_PREFIX
+              value: "keycloak-dify-oidc"

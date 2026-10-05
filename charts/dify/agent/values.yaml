@@ -1,0 +1,20 @@
+frontendDify:
+  pullPolicy: IfNotPresent
+  agent:
+    backendImage: docker.io/langgenius/dify-agent-backend:1.17.1@sha256:a30c039bbead65d7fd8baf8c53fc867373f515c5721e46070ce03ed04c5f1e32
+    sandboxImage: docker.io/langgenius/dify-agent-local-sandbox:1.17.1@sha256:f4d404c9dcdf80bd72f65e84c3f2bbd1f3404fd4b363db837176da8aaf771b1d
+    proxyImage: docker.io/ubuntu/squid:6.6-24.04_beta@sha256:6a097f68bae708cedbabd6188d68c7e2e7a38cedd05a176e1cc0ba29e3bbe029
+    storageClassName: infra-rook-ceph-rbd
+    storageSize: 10Gi
+    backend:
+      resources:
+        requests: { cpu: 100m, memory: 256Mi }
+        limits: { cpu: 1000m, memory: 1Gi }
+    sandbox:
+      resources:
+        requests: { cpu: 100m, memory: 256Mi }
+        limits: { cpu: 1000m, memory: 1Gi }
+    proxy:
+      resources:
+        requests: { cpu: 50m, memory: 128Mi }
+        limits: { cpu: 500m, memory: 512Mi }

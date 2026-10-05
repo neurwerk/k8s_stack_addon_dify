@@ -1,0 +1,38 @@
+# IMAGE SOURCE: ce-builder
+# Dify addon: langgenius/dify-api + Dify addon Keycloak OIDC overlay
+# Pinned here (chart defaults)
+# NOTE: apiImage is shared by api, beat, and worker pods — same image,
+#       differentiated by the MODE env var (api/beat/worker).
+frontendDify:
+  apiImage: ghcr.io/neurwerk/addon-dify-ce-builder-api:1.17.1-kc-v1@sha256:c5b486052d0da75aa140310511655c8a6f9f910f5179a55bcfdb3b1b88c70202
+  pullPolicy: IfNotPresent
+  postgres:
+    host: postgres-operations.infra-postgres-operations.svc.cluster.local
+    servicePort: 5432
+    providerPodPort: 9712
+    user: dify
+    database: dify
+    vectorDatabase: dify_vector
+  api:
+    ports:
+      container:
+        http: 5001
+  config:
+    MODE: worker
+    LOG_LEVEL: WARNING
+    STORAGE_TYPE: local
+    STORAGE_LOCAL_PATH: /app/api/storage
+    VECTOR_STORE: pgvector
+    PLUGIN_DAEMON_URL: http://frontend-dify-plugin-daemon-service:5002
+    SANDBOX_API_URL: http://frontend-dify-sandbox-service:8194
+  worker:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+  storage:
+    size: 20Gi

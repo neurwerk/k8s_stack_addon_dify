@@ -76,8 +76,8 @@ if [[ "${actual_source_sha256}" != "${DIFY_SOURCE_SHA256}" ]]; then
 fi
 
 tar -xzf "${archive}" -C "${temporary_dir}"
-python3 "${REPO_DIR}/overlay/scripts/patch_dify.py" api "${temporary_dir}/dify-${DIFY_VERSION}/api"
-python3 "${REPO_DIR}/overlay/scripts/patch_dify.py" web "${temporary_dir}/dify-${DIFY_VERSION}/web"
+  python3 "${REPO_DIR}/customizations/scripts/patch_dify.py" api "${temporary_dir}/dify-${DIFY_VERSION}/api"
+  python3 "${REPO_DIR}/customizations/scripts/patch_dify.py" web "${temporary_dir}/dify-${DIFY_VERSION}/web"
 
 docker_hub_index_digest() {
   local repository="$1"
@@ -152,7 +152,7 @@ if [[ "${actual_alpine_digest}" != "${ALPINE_IMAGE_DIGEST}" ]]; then
 fi
 
 (
-  cd "${REPO_DIR}/overlay/plugins"
+  cd "${REPO_DIR}/customizations/plugins"
   if command -v sha256sum >/dev/null 2>&1; then
     sha256sum --check SHA256SUMS.txt
   else

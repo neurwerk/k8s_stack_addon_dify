@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-dify-redis-service
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: frontend-dify-redis
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  type: ClusterIP
+  ports:
+    - name: redis
+      port: {{ .Values.frontendDify.redis.ports.service.redis }}
+      targetPort: {{ .Values.frontendDify.redis.ports.container.redis }}
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: frontend-dify-redis

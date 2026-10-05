@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: frontend-dify-redis-stateful-set
+  namespace: frontend-dify
+  annotations:
+    secret.reloader.stakater.com/reload: "frontend-dify-secret"
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: frontend-dify-redis
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  serviceName: frontend-dify-redis-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+      app.kubernetes.io/instance: frontend-dify-redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/instance: frontend-dify-redis
+        app.kubernetes.io/part-of: frontend-dify
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.frontendDify.redisImage }}
+          imagePullPolicy: {{ .Values.frontendDify.pullPolicy }}
+          ports:
+            - name: redis
+              containerPort: {{ .Values.frontendDify.redis.ports.container.redis }}
+              protocol: TCP
+          args:
+            - "--requirepass"
+            - "$(REDIS_PASSWORD)"
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-secret
+                  key: REDIS_PASSWORD
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-secret
+                  key: REDIS_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          startupProbe:
+            exec:
+              command:
+                - redis-cli
+                - -e
+                - -h
+                - 127.0.0.1
+                - ping
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -e
+                - -h
+                - 127.0.0.1
+                - ping
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -e
+                - -h
+                - 127.0.0.1
+                - ping
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.frontendDify.redis.resources | nindent 12 }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: redis
+          app.kubernetes.io/instance: frontend-dify-redis
+          app.kubernetes.io/part-of: frontend-dify
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.frontendDify.redis.storage }}
+        storageClassName: {{ .Values.frontendDify.redis.storageClassName }}

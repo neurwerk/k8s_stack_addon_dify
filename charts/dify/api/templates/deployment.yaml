@@ -1,0 +1,252 @@
+{{- $difyRoles := .Values.authKeycloak.difyAgentgatewayClientRoles | default list }}
+{{- if not (has "llm:invoke" $difyRoles) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must include llm:invoke" }}{{- end }}
+{{- $defaultModel := .Values.frontendDify.defaultModel | default dict }}
+{{- $model := get $defaultModel "name" | default "" }}
+{{- $modelProviders := dict }}
+{{- if $model }}
+{{- $permission := printf "model:%s:invoke" $model }}
+{{- if not (has $permission $difyRoles) }}{{- fail (printf "Dify model %q requires %q in authKeycloak.difyAgentgatewayClientRoles" $model $permission) }}{{- end }}
+{{- $contextSize := required "frontendDify.defaultModel.contextSize is required when a default model is selected" (get $defaultModel "contextSize") }}
+{{- $credentials := dict "api_key" "$(LLM_PROXY_API_KEY)" "endpoint_url" "$(LLM_PROXY_ENDPOINT)" "context_size" $contextSize }}
+{{- $provider := dict "provider" "openai_api_compatible" "model_type" "llm" "model" $model "credentials" $credentials "as_default" true }}
+{{- $_ := set $modelProviders "openai_api_compatible" $provider }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-dify-api-deployment
+  namespace: frontend-dify
+  annotations:
+    secret.reloader.stakater.com/reload: "frontend-dify-openbao-secret,frontend-dify-secret"
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/instance: frontend-dify-api
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  replicas: {{ .Values.frontendDify.api.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+      app.kubernetes.io/instance: frontend-dify-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api
+        app.kubernetes.io/instance: frontend-dify-api
+        app.kubernetes.io/part-of: frontend-dify
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+      initContainers:
+        - name: setup-model-provider
+          image: {{ .Values.frontendDify.apiImage }}
+          imagePullPolicy: {{ .Values.frontendDify.pullPolicy }}
+          command:
+            - python
+            - scripts/setup_model_provider.py
+          env:
+            - name: DB_HOST
+              value: {{ .Values.frontendDify.postgres.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.frontendDify.postgres.servicePort | quote }}
+            - name: DB_USERNAME
+              value: {{ .Values.frontendDify.postgres.user | quote }}
+            - name: DB_DATABASE
+              value: {{ .Values.frontendDify.postgres.database | quote }}
+            - name: PGSSLMODE
+              value: disable
+            - name: REDIS_HOST
+              value: frontend-dify-redis-service
+            - name: REDIS_PORT
+              value: "6379"
+            - name: PYTHONPATH
+              value: /app/api
+            - name: PLUGIN_DAEMON_URL
+              value: {{ .Values.frontendDify.config.PLUGIN_DAEMON_URL | quote }}
+            - name: INNER_API_KEY_FOR_PLUGIN
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: PLUGIN_DAEMON_KEY }
+            - name: AGENT_BACKEND_BASE_URL
+              value: http://frontend-dify-agent-backend-service:5050
+            - name: AGENT_BACKEND_API_TOKEN
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: DIFY_AGENT_API_TOKEN }
+            - name: KEYCLOAK_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-openbao-secret, key: KEYCLOAK_OIDC_CLIENT_SECRET }
+            - name: AUTO_SETUP_ADMIN_EMAIL
+              value: {{ .Values.frontendDify.config.AUTO_SETUP_ADMIN_EMAIL | default "admin@neurwerk.com" | quote }}
+            - name: AUTO_SETUP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-openbao-secret
+                  key: AUTO_SETUP_ADMIN_PASSWORD
+            - name: TENANT_NAME
+              value: {{ .Values.frontendDify.config.DEFAULT_WORKSPACE_NAME | quote }}
+            - name: DEFAULT_WORKSPACE_NAME
+              value: {{ .Values.frontendDify.config.DEFAULT_WORKSPACE_NAME | quote }}
+            - name: DIFY_BOOTSTRAP_LOCK_TIMEOUT_SECONDS
+              value: {{ .Values.frontendDify.config.DIFY_BOOTSTRAP_LOCK_TIMEOUT_SECONDS | quote }}
+            - name: LLM_PROXY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-openbao-secret
+                  key: AGENTGATEWAY_API_KEY
+            # LLM_PROXY_ENDPOINT comes from frontend-dify-secret (envFrom below) —
+            # single source of truth in the shared chart.
+            # The model comes from client values; adapter credentials remain
+            # fixed Secret references owned by this chart.
+            - name: MODEL_PROVIDER_CREDENTIALS
+              value: {{ $modelProviders | toJson | quote }}
+            - name: MODEL_SETTINGS
+              value: '{"openai_api_compatible": {"enabled": true}}'
+          envFrom:
+            - secretRef:
+                name: frontend-dify-secret
+          volumeMounts:
+            - name: storage
+              mountPath: /app/api/storage
+              subPath: storage
+      containers:
+        - name: api
+          image: {{ .Values.frontendDify.apiImage }}
+          imagePullPolicy: {{ .Values.frontendDify.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.frontendDify.api.ports.container.http }}
+              protocol: TCP
+          env:
+            - name: MODE
+              value: {{ .Values.frontendDify.config.MODE | quote }}
+            - name: MIGRATION_ENABLED
+              value: "true"
+            - name: DB_HOST
+              value: {{ .Values.frontendDify.postgres.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.frontendDify.postgres.servicePort | quote }}
+            - name: DB_USERNAME
+              value: {{ .Values.frontendDify.postgres.user | quote }}
+            - name: DB_DATABASE
+              value: {{ .Values.frontendDify.postgres.database | quote }}
+            - name: PGSSLMODE
+              value: disable
+            - name: REDIS_HOST
+              value: frontend-dify-redis-service
+            - name: REDIS_PORT
+              value: "6379"
+            - name: LOG_LEVEL
+              value: {{ .Values.frontendDify.config.LOG_LEVEL | quote }}
+            - name: SERVER_WORKER_AMOUNT
+              value: {{ .Values.frontendDify.config.SERVER_WORKER_AMOUNT | default "1" | quote }}
+            - name: CONSOLE_API_URL
+              value: {{ printf "https://%s" .Values.frontendDify.hostname | quote }}
+            - name: CONSOLE_WEB_URL
+              value: {{ printf "https://%s" .Values.frontendDify.hostname | quote }}
+            - name: COOKIE_DOMAIN
+              value: {{ .Values.frontendDify.hostname | quote }}
+            - name: SERVICE_API_URL
+              value: {{ printf "http://frontend-dify-api-service:%s" (.Values.frontendDify.api.ports.service.http | toString) | quote }}
+            - name: STORAGE_TYPE
+              value: {{ .Values.frontendDify.config.STORAGE_TYPE | quote }}
+            - name: STORAGE_LOCAL_PATH
+              value: {{ .Values.frontendDify.config.STORAGE_LOCAL_PATH | quote }}
+            - name: VECTOR_STORE
+              value: {{ .Values.frontendDify.config.VECTOR_STORE | quote }}
+            - name: PGVECTOR_HOST
+              value: {{ .Values.frontendDify.postgres.host | quote }}
+            - name: PGVECTOR_PORT
+              value: {{ .Values.frontendDify.postgres.servicePort | quote }}
+            - name: PGVECTOR_USER
+              value: {{ .Values.frontendDify.postgres.user | quote }}
+            - name: PGVECTOR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-secret
+                  key: DB_PASSWORD
+            - name: PGVECTOR_DATABASE
+              value: {{ .Values.frontendDify.postgres.vectorDatabase | quote }}
+            - name: PLUGIN_DAEMON_URL
+              value: {{ .Values.frontendDify.config.PLUGIN_DAEMON_URL | quote }}
+            - name: SANDBOX_API_URL
+              value: {{ .Values.frontendDify.config.SANDBOX_API_URL | quote }}
+            - name: INNER_API_KEY_FOR_PLUGIN
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: PLUGIN_DAEMON_KEY }
+            - name: AGENT_BACKEND_BASE_URL
+              value: http://frontend-dify-agent-backend-service:5050
+            - name: AGENT_BACKEND_API_TOKEN
+              valueFrom:
+                secretKeyRef: { name: frontend-dify-secret, key: DIFY_AGENT_API_TOKEN }
+            - name: ENABLE_SOCIAL_OAUTH_LOGIN
+              value: {{ .Values.frontendDify.config.ENABLE_SOCIAL_OAUTH_LOGIN | quote }}
+            - name: ALLOW_REGISTER
+              value: {{ .Values.frontendDify.config.ALLOW_REGISTER | quote }}
+            - name: ALLOW_CREATE_WORKSPACE
+              value: {{ .Values.frontendDify.config.ALLOW_CREATE_WORKSPACE | quote }}
+            - name: ALLOW_SSO_REGISTER
+              value: {{ .Values.frontendDify.config.ALLOW_SSO_REGISTER | quote }}
+            - name: ENFORCE_SINGLE_WORKSPACE
+              value: {{ .Values.frontendDify.config.ENFORCE_SINGLE_WORKSPACE | quote }}
+            - name: ENABLE_EMAIL_PASSWORD_LOGIN
+              value: {{ .Values.frontendDify.config.ENABLE_EMAIL_PASSWORD_LOGIN | quote }}
+            - name: ENABLE_EMAIL_CODE_LOGIN
+              value: {{ .Values.frontendDify.config.ENABLE_EMAIL_CODE_LOGIN | quote }}
+            - name: AUTO_SETUP_ADMIN_EMAIL
+              value: {{ .Values.frontendDify.config.AUTO_SETUP_ADMIN_EMAIL | quote }}
+            - name: AUTO_SETUP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-openbao-secret
+                  key: AUTO_SETUP_ADMIN_PASSWORD
+            - name: DEFAULT_WORKSPACE_NAME
+              value: {{ .Values.frontendDify.config.DEFAULT_WORKSPACE_NAME | quote }}
+            - name: KEYCLOAK_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-openbao-secret
+                  key: KEYCLOAK_OIDC_CLIENT_SECRET
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-dify-secret
+                  key: REDIS_PASSWORD
+            - name: CELERY_BROKER_URL
+              value: redis://:$(REDIS_PASSWORD)@frontend-dify-redis-service:6379/0
+          envFrom:
+            - secretRef:
+                name: frontend-dify-secret
+          volumeMounts:
+            - name: storage
+              mountPath: /app/api/storage
+              subPath: storage
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 180
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.frontendDify.api.resources | nindent 12 }}
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: frontend-dify-api-pvc

@@ -1,0 +1,67 @@
+# =============================================================================
+# Dify API Migration Job
+#
+# Pre-install Job that initializes the database schema.
+# Uses the CE builder image (same as the main API deployment).
+#
+# Runs once before the API deployment, then is cleaned up.
+# =============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: frontend-dify-api-migration-job
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/instance: frontend-dify-api
+    app.kubernetes.io/part-of: frontend-dify
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api-migration
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/part-of: frontend-dify
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migration
+          image: {{ .Values.frontendDify.apiImage }}
+          command:
+            - python
+            - -c
+            - |
+              from app_factory import create_migrations_app
+              from flask_migrate import upgrade
+              app = create_migrations_app()
+              with app.app_context():
+                  upgrade()
+          env:
+            - name: MIGRATION_ENABLED
+              value: "true"
+            - name: MODE
+              value: migration
+            - name: DB_HOST
+              value: {{ .Values.frontendDify.postgres.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.frontendDify.postgres.servicePort | quote }}
+            - name: DB_USERNAME
+              value: {{ .Values.frontendDify.postgres.user | quote }}
+            - name: DB_DATABASE
+              value: {{ .Values.frontendDify.postgres.database | quote }}
+            - name: PGSSLMODE
+              value: disable
+            - name: REDIS_HOST
+              value: frontend-dify-redis-service
+            - name: REDIS_PORT
+              value: "6379"
+          envFrom:
+            - secretRef:
+                name: frontend-dify-secret

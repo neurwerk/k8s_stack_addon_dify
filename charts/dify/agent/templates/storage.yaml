@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: frontend-dify-agent-sandbox-pvc
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: agent-sandbox
+    app.kubernetes.io/instance: frontend-dify-agent
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ .Values.frontendDify.agent.storageClassName | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.frontendDify.agent.storageSize | quote }}

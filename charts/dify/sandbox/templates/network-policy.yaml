@@ -1,0 +1,43 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-dify-sandbox-network-policy
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: sandbox
+    app.kubernetes.io/instance: frontend-dify-sandbox
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: sandbox
+      app.kubernetes.io/instance: frontend-dify-sandbox
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: api
+              app.kubernetes.io/instance: frontend-dify-api
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: worker
+              app.kubernetes.io/instance: frontend-dify-worker
+      ports:
+        - protocol: TCP
+          port: 8194
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

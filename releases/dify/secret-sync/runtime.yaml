@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend-dify-external-secrets
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: external-secrets
+    app.kubernetes.io/instance: frontend-dify-secret-sync
+    app.kubernetes.io/part-of: frontend-dify
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: frontend-dify-openbao-secret-store
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: external-secrets
+    app.kubernetes.io/instance: frontend-dify-secret-sync
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  provider:
+    vault:
+      server: https://infra-openbao.infra-openbao.svc:8200
+      path: secret
+      version: v2
+      caProvider:
+        type: ConfigMap
+        name: infra-openbao-ca-bundle
+        key: ca.crt
+      auth:
+        kubernetes:
+          mountPath: kubernetes
+          role: frontend-dify
+          serviceAccountRef:
+            name: frontend-dify-external-secrets
+            audiences:
+              - openbao
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: frontend-dify-runtime-secret
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: external-secrets
+    app.kubernetes.io/instance: frontend-dify-secret-sync
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: frontend-dify-openbao-secret-store
+    kind: SecretStore
+  target:
+    name: frontend-dify-runtime-secret
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      engineVersion: v2
+      type: Opaque
+      metadata:
+        labels:
+          reconcile.fluxcd.io/watch: Enabled
+      data:
+        values.yaml: |
+          difySecrets:
+            SECRET_KEY: {{ .secretKey | quote }}
+            POSTGRES_PASSWORD: {{ .postgresPassword | quote }}
+            REDIS_PASSWORD: {{ .redisPassword | quote }}
+            SANDBOX_API_KEY: {{ .sandboxApiKey | quote }}
+            PLUGIN_DAEMON_KEY: {{ .pluginDaemonKey | quote }}
+            DIFY_AGENT_API_TOKEN: {{ .difyAgentApiToken | quote }}
+            DIFY_AGENT_SERVER_SECRET_KEY: {{ .difyAgentServerSecretKey | quote }}
+            DIFY_AGENT_SANDBOX_AUTH_TOKEN: {{ .difyAgentSandboxAuthToken | quote }}
+  data:
+    - secretKey: secretKey
+      remoteRef:
+        key: frontend-dify/internal
+        property: secretKey
+    - secretKey: postgresPassword
+      remoteRef:
+        key: frontend-dify/internal
+        property: postgresPassword
+    - secretKey: redisPassword
+      remoteRef:
+        key: frontend-dify/internal
+        property: redisPassword
+    - secretKey: sandboxApiKey
+      remoteRef:
+        key: frontend-dify/internal
+        property: sandboxApiKey
+    - secretKey: pluginDaemonKey
+      remoteRef:
+        key: frontend-dify/internal
+        property: pluginDaemonKey
+    - secretKey: difyAgentApiToken
+      remoteRef:
+        key: frontend-dify/internal
+        property: difyAgentApiToken
+    - secretKey: difyAgentServerSecretKey
+      remoteRef:
+        key: frontend-dify/internal
+        property: difyAgentServerSecretKey
+    - secretKey: difyAgentSandboxAuthToken
+      remoteRef:
+        key: frontend-dify/internal
+        property: difyAgentSandboxAuthToken
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: frontend-dify-openbao-secret
+  namespace: frontend-dify
+  labels:
+    app.kubernetes.io/name: external-secrets
+    app.kubernetes.io/instance: frontend-dify-secret-sync
+    app.kubernetes.io/part-of: frontend-dify
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: frontend-dify-openbao-secret-store
+    kind: SecretStore
+  target:
+    name: frontend-dify-openbao-secret
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      type: Opaque
+      metadata:
+        labels:
+          reconcile.fluxcd.io/watch: Enabled
+  data:
+    - secretKey: KEYCLOAK_OIDC_CLIENT_SECRET
+      remoteRef:
+        key: frontend-dify/internal
+        property: keycloakOidcClientSecret
+    - secretKey: AUTO_SETUP_ADMIN_PASSWORD
+      remoteRef:
+        key: frontend-dify/internal
+        property: initPassword
+    - secretKey: AGENTGATEWAY_API_KEY
+      remoteRef:
+        key: frontend-dify/internal
+        property: agentgatewayApiKey

@@ -1,0 +1,5 @@
+authKeycloak:
+  difyClientId: dify
+  difyAgentgatewayClientId: dify-agentgateway
+  difyRedirectUri: https://place.holder/console/api/oauth/authorize/keycloak
+  difyWebOrigin: https://place.holder

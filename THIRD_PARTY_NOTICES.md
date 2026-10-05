@@ -20,7 +20,7 @@ third-party works described here.
 - License: Dify Open Source License, based on Apache License 2.0 with additional
   conditions; see `LICENSES/Dify-LICENSE`
 
-The Dify-derived `overlay/api/neurwerk_sso.py`, `neurwerk_settings.py`, the
+The Dify-derived `customizations/api/neurwerk_sso.py`, `neurwerk_settings.py`, the
 retry-safe concurrent-index migration, and the modified upstream API and Web
 files remain under the Dify Open Source License. The Web image is built from
 the source revision and archive identified above. The API image
@@ -49,7 +49,7 @@ digests.
 - Source: <https://github.com/langgenius/dify-official-plugins>
 - Package version: `0.0.56`
 - Version source revision: `e1d1565d61ce534cbdba998df226a9a080606bfc`
-- Bundled file: `overlay/plugins/langgenius-openai_api_compatible_0.0.56.difypkg`
+- Bundled file: `customizations/plugins/langgenius-openai_api_compatible_0.0.56.difypkg`
 - Package SHA-256: `859e3d9496446e4dff192ca064012d5e34a76eb19eddba2d3fd9c40462991a22`
 - Copyright: Copyright 2025 LangGenius, Inc.
 - License: Apache License 2.0; see `LICENSES/Apache-2.0.txt`

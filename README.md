@@ -1,13 +1,36 @@
-# Neurwerk Dify CE Builder
+# Neurwerk Dify addon
 
-This repository contains the owned build tooling and overlay used to produce
-Neurwerk's Dify Community Edition API and Web images. It keeps the build
-interactive and workstation-operated because the images are too large for the
-hosted CI path. CI validates source provenance, checksums, shell code, Python
-tests, and formatting; it never builds or publishes images.
+This repository owns the Dify Community Edition charts, release stages, and
+the API and Web overlay images. The client selects this optional package as a
+separate Git source; Base provides shared PostgreSQL and identity services.
+Image builds are interactive and workstation-operated because the images are
+too large for the hosted CI path. CI validates source provenance, checksums,
+shell code, and formatting; it never builds or publishes images.
+`make check` also renders the charts and release packages.
 
 The canonical repository is
-[`neurwerk/addon_dify_ce_builder`](https://github.com/neurwerk/addon_dify_ce_builder).
+[`neurwerk/k8s_stack_addon_dify`](https://github.com/neurwerk/k8s_stack_addon_dify).
+
+## Package layout
+
+- `charts/dify/`: application components and Dify OIDC registration.
+- `releases/namespaces/dify/`: Dify namespace.
+- `releases/dify/secret-sync/`: namespace-local OpenBao credential delivery.
+- `releases/dify/oidc/`: OIDC reconciliation.
+- `releases/dify/app/`: application releases and non-secret defaults.
+
+The release files use `GitRepository/dify-addon` in `flux-system`. The client
+supplies the source at an exact commit, namespace-local values, and ordered
+Flux stages. This is a staged package, **not an installable add-on yet**:
+database, roles, approval, and managed-key stages still need the agreed Base
+interfaces, and the application charts still pin the verified legacy GHCR
+API/Web digests. Do not select it until those stages are complete, the new
+API and Web image names have been published and verified, the chart pins have
+been updated, and client dependencies have been validated. No Dify instance is
+running.
+
+See [installation](docs/installation.md) for the staged package boundaries and
+[operations](docs/operations.md) for validation and future health checks.
 
 ## What It Changes
 
@@ -17,9 +40,9 @@ The canonical repository is
 - Adds single-workspace model-provider bootstrap behavior.
 - Bundles a checksum-pinned, unmodified Dify OpenAI-compatible plugin package.
 
-`overlay/scripts/patch_dify.py` applies guarded changes to the pinned upstream
-API and Web sources. `overlay/api/neurwerk_settings.py` extends configuration,
-and `overlay/api/neurwerk_sso.py` integrates Keycloak with upstream's OAuth
+`customizations/scripts/patch_dify.py` applies guarded changes to the pinned upstream
+API and Web sources. `customizations/api/neurwerk_settings.py` extends configuration,
+and `customizations/api/neurwerk_sso.py` integrates Keycloak with upstream's OAuth
 application service. See
 `NOTICE-CHANGES.md` for the change inventory and `THIRD_PARTY_NOTICES.md` for
 license and provenance details.
@@ -62,9 +85,8 @@ Install [uv](https://docs.astral.sh/uv/) and ShellCheck, then run:
 
 ```bash
 uv sync --locked --dev
-uv run ruff check overlay/api/neurwerk_sso.py overlay/api/neurwerk_settings.py overlay/scripts scripts tests
-uv run ruff format --check overlay/api/neurwerk_sso.py overlay/api/neurwerk_settings.py overlay/scripts scripts tests
-uv run pytest
+uv run ruff check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts
+uv run ruff format --check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts
 shellcheck deploy.sh scripts/verify-sources.sh
 ./scripts/verify-sources.sh
 ```
