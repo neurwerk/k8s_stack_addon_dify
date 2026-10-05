@@ -119,9 +119,9 @@ The access stage requires Base's `charts/keycloak/addon-access` and the existing
 `keycloak-realm-roles`; the Job's configuration label and network policy allow
 DNS and access to the Keycloak service after the server is ready. The selected
 client must supply namespace-local `auth-keycloak/dify-keycloak-access-values`
-(`values.yaml`) with `k8sTools.image` set to a published, verified image that
-supports `KC_REALM_ROLE_COMPOSITE_OWNERSHIP`. That same image must be pinned in
-Base's realm-role Job. Do not use an older image or select this stage before
+(`values.yaml`) for access settings. The add-on HelmRelease pins verified Tooling
+`0.7.3` with `KC_REALM_ROLE_COMPOSITE_OWNERSHIP` support; Base's realm-role Job
+must use the same image. Do not use an older image or select this stage before
 Base removes its Dify role and group ownership; otherwise concurrent reconcilers
 can undo one another's grants. Preserve the existing `dify-user`, `dify-admin`,
 `/access/neurwerk-dify-users`, and `/access/neurwerk-dify-admins` identities.
