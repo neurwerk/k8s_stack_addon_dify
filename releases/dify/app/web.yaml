@@ -21,6 +21,8 @@ spec:
       namespace: kube-system
     - name: cert-manager-issuers
       namespace: infra-cert-manager
+    - name: cert-manager-dify-approval-policy
+      namespace: infra-cert-manager
     - name: frontend-dify-api
       namespace: frontend-dify
   chart:

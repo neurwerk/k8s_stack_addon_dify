@@ -1,0 +1,40 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cert-manager-dify-approval-policy
+  namespace: infra-cert-manager
+spec:
+  releaseName: cert-manager-dify-approval-policy
+  interval: 5m
+  timeout: 15m
+  install:
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 1m
+  upgrade:
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 1m
+  waitStrategy:
+    name: poller
+  healthCheckExprs:
+    - apiVersion: policy.cert-manager.io/v1alpha1
+      kind: CertificateRequestPolicy
+      inProgress: "!status.conditions.exists(e, e.type == 'Ready' && e.observedGeneration == metadata.generation && e.status != 'Unknown')"
+      failed: status.conditions.exists(e, e.type == 'Ready' && e.observedGeneration == metadata.generation && e.status == 'False')
+      current: status.conditions.exists(e, e.type == 'Ready' && e.observedGeneration == metadata.generation && e.status == 'True')
+  dependsOn:
+    - name: cert-manager-approver-policy
+      namespace: infra-cert-manager
+  chart:
+    spec:
+      chart: ./charts/dify/certificate-approval
+      sourceRef:
+        kind: GitRepository
+        name: dify-addon
+        namespace: flux-system
+      interval: 10m
+  valuesFrom:
+    - kind: ConfigMap
+      name: client-values
+      valuesKey: values.yaml

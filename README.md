@@ -16,18 +16,32 @@ The canonical repository is
 - `charts/dify/`: application components and Dify OIDC registration.
 - `releases/namespaces/dify/`: Dify namespace.
 - `releases/dify/secret-sync/`: namespace-local OpenBao credential delivery.
+- `releases/dify/database/`: optional PostgreSQL provisioning and network access.
+- `releases/dify/access/`: Dify-owned Keycloak roles and groups.
 - `releases/dify/oidc/`: OIDC reconciliation.
+- `releases/dify/managed-keys/`: add-on-owned bridge grants.
+- `releases/dify/certificate-approval/`: public certificate approval.
 - `releases/dify/app/`: application releases and non-secret defaults.
 
 The release files use `GitRepository/dify-addon` in `flux-system`. The client
 supplies the source at an exact commit, namespace-local values, and ordered
 Flux stages. This is a staged package, **not an installable add-on yet**:
-database, roles, approval, and managed-key stages still need the agreed Base
-interfaces, and the application charts still pin the verified legacy GHCR
-API/Web digests. Do not select it until those stages are complete, the new
-API and Web image names have been published and verified, the chart pins have
-been updated, and client dependencies have been validated. No Dify instance is
-running.
+the database stage requires a published generic Base chart and a safe handoff
+from Base's existing Dify provisioning; access and managed-key stages need
+compatible Base and Tooling interfaces and a published compatible bridge
+image; certificate approval needs Base ownership cleanup. Both API and Web
+images are publicly published and independently verified at their immutable
+chart pins, from source `4fbb801e9dbc6024efc9eca2491b1946056309f5`:
+
+| Image | Verified OCI index digest |
+| --- | --- |
+| `ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1` | `sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f` |
+| `ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v1` | `sha256:05e5297b43855a8ea6b8ec2a1fe631567f8b25146075e9e9a8ece3abc3e638c9` |
+
+Both OCI indexes include a verified `linux/amd64` child manifest and matching
+source/version labels. Do not select the add-on until the Base and Tooling
+prerequisites, bridge, safe handoff, and client dependencies are ready. No Dify
+instance is running.
 
 See [installation](docs/installation.md) for the staged package boundaries and
 [operations](docs/operations.md) for validation and future health checks.

@@ -1,10 +1,10 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: keycloak-dify-oidc
-  namespace: auth-keycloak
+  name: dify-managed-keys
+  namespace: auth-keycloak-api-key-bridge
 spec:
-  releaseName: auth-keycloak-dify-oidc
+  releaseName: dify-managed-keys
   interval: 5m
   timeout: 15m
   install:
@@ -15,12 +15,9 @@ spec:
     strategy:
       name: RetryOnFailure
       retryInterval: 1m
-  dependsOn:
-    - name: keycloak-dify-access
-      namespace: auth-keycloak
   chart:
     spec:
-      chart: ./charts/dify/oidc
+      chart: ./charts/dify/managed-keys
       sourceRef:
         kind: GitRepository
         name: dify-addon
@@ -28,11 +25,9 @@ spec:
       interval: 10m
   valuesFrom:
     - kind: ConfigMap
-      name: dify-oidc-defaults
+      name: client-openrouter-catalog-values
       valuesKey: values.yaml
-    - kind: ConfigMap
-      name: auth-keycloak-app-defaults
-      valuesKey: values.yaml
+      optional: true
     - kind: ConfigMap
       name: client-values
       valuesKey: values.yaml

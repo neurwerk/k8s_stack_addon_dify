@@ -1,0 +1,24 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: frontend-dify-postgres-password
+  namespace: infra-postgres-operations
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: infra-postgres-operations-openbao-secret-store
+    kind: SecretStore
+  target:
+    name: frontend-dify-postgres-password
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      type: Opaque
+      metadata:
+        labels:
+          reconcile.fluxcd.io/watch: Enabled
+  data:
+    - secretKey: password
+      remoteRef:
+        key: infra-postgres-operations/internal
+        property: difyPassword
