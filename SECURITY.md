@@ -12,7 +12,7 @@ should follow Dify's security policy.
 ## Reporting A Vulnerability
 
 Do not open a public issue for a suspected vulnerability and do not include
-credentials, tokens, personal data, or exploit details in public discussions.
+credentials, tokens, personal data, or exploit details in public posts.
 
 Report vulnerabilities privately through the canonical repository's
 [GitHub security advisory form](https://github.com/neurwerk/k8s_stack_addon_dify/security/advisories/new).

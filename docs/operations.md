@@ -9,7 +9,7 @@ database, access, OIDC, managed-key, certificate-approval and application
 Kustomize packages without installing anything.
 
 The API and Web images are publicly published and independently verified at
-their chart pins; see the [README](../README.md#package-layout) for digests and
+their chart pins; see the [image verification record](https://github.com/neurwerk/k8s_stack_addon_dify/blob/bdecb853e558cc6c2b870af84fbc0812fa3f7c69/README.md#package-layout) for digests and
 source revision. Before any future authorized installation, verify the agreed
 Base and Tooling interfaces, a compatible published bridge image, exact add-on
 Git revision, client-owned values, safe database handoff, secret delivery, and
