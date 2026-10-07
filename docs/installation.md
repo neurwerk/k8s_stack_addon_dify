@@ -3,7 +3,7 @@
 This add-on is staged, **not installable**. No Dify instance is running.
 The API and Web images are public and independently verified; the API, beat,
 worker, and web chart defaults pin their exact versioned tags and OCI index
-digests (see [README](../README.md#package-layout)). Base must first publish
+digests (see the [image verification record](https://github.com/neurwerk/k8s_stack_addon_dify/blob/bdecb853e558cc6c2b870af84fbc0812fa3f7c69/README.md#package-layout)). Base must first publish
 compatible generic database and Keycloak access interfaces, remove its Dify
 resource and certificate policy ownership, and provide a compatible published
 managed-key bridge image. Tooling must support the access and verifier contracts.

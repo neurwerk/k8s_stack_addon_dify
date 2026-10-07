@@ -1,178 +1,36 @@
-# Neurwerk Dify addon
+# neurwerk.base - Dify Add-on
 
-This repository owns the Dify Community Edition charts, release stages, and
-the API and Web overlay images. The client selects this optional package as a
-separate Git source; Base provides shared PostgreSQL and identity services.
-Image builds are interactive and workstation-operated because the images are
-too large for the hosted CI path. CI validates source provenance, checksums,
-shell code, and formatting; it never builds or publishes images.
-`make check` also renders the charts and release packages.
+The Dify add-on provides an optional Dify package for neurwerk.base, with API and web customizations including single-workspace enforcement. See the [neurwerk.base website](https://base.neurwerk.com/) for more information.
 
-The canonical repository is
-[`neurwerk/k8s_stack_addon_dify`](https://github.com/neurwerk/k8s_stack_addon_dify).
-
-## Package layout
-
-- `charts/dify/`: application components and Dify OIDC registration.
-- `releases/namespaces/dify/`: Dify namespace.
-- `releases/dify/secret-sync/`: namespace-local OpenBao credential delivery.
-- `releases/dify/database/`: optional PostgreSQL provisioning and network access.
-- `releases/dify/access/`: Dify-owned Keycloak roles and groups.
-- `releases/dify/oidc/`: OIDC reconciliation.
-- `releases/dify/managed-keys/`: add-on-owned bridge grants.
-- `releases/dify/certificate-approval/`: public certificate approval.
-- `releases/dify/app/`: application releases and non-secret defaults.
-
-The release files use `GitRepository/dify-addon` in `flux-system`. The client
-supplies the source at an exact commit, namespace-local values, and ordered
-Flux stages. This is a staged package, **not an installable add-on yet**:
-the database stage requires a published generic Base chart and a safe handoff
-from Base's existing Dify provisioning; access and managed-key stages need
-compatible Base and Tooling interfaces and a published compatible bridge
-image; certificate approval needs Base ownership cleanup. Both API and Web
-images are publicly published and independently verified at their immutable
-chart pins, from source `4fbb801e9dbc6024efc9eca2491b1946056309f5`:
-
-| Image | Verified OCI index digest |
+| Repository | Description |
 | --- | --- |
-| `ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1` | `sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f` |
-| `ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v1` | `sha256:05e5297b43855a8ea6b8ec2a1fe631567f8b25146075e9e9a8ece3abc3e638c9` |
+| [Base chart](https://github.com/neurwerk/k8s_stack_base) | Shared platform charts and release packages that form the foundation of the stack. |
+| [Studio](https://github.com/neurwerk/k8s_stack_studio) | Web dashboard and API for operating AI platform services. |
+| [Tooling](https://github.com/neurwerk/k8s_stack_tooling) | One container image plus separate CLI tools for setup and operations. |
+| [PII Engine](https://github.com/neurwerk/k8s_stack_pii_engine) | Service that uses Presidio to evaluate PII and apply safety policies. |
+| [AgentGateway External Processor](https://github.com/neurwerk/k8s_stack_agentgateway_extproc) | Adapter that processes gateway requests and responses with the PII Engine. |
+| [Keycloak API Key Bridge](https://github.com/neurwerk/k8s_stack_keycloak_api_key_bridge) | Separate service that issues and validates API keys using Keycloak permissions. |
+| [Keycloak Theme](https://github.com/neurwerk/k8s_stack_keycloak_theme) | Customized Keycloak login pages and emails. |
+|  |  |
+| [Example client chart](https://github.com/neurwerk/k8s_stack_client_example_com) | Reference client configuration and Flux deployment setup to adapt for a new client. |
+|  |  |
+| [Dify Add-on](https://github.com/neurwerk/k8s_stack_addon_dify) | Optional Dify package with API and web customizations, including single-workspace enforcement (**this repo**). |
 
-Both OCI indexes include a verified `linux/amd64` child manifest and matching
-source/version labels. Do not select the add-on until the Base and Tooling
-prerequisites, bridge, safe handoff, and client dependencies are ready. No Dify
-instance is running.
+## Contributing and support
 
-See [installation](docs/installation.md) for the staged package boundaries and
-[operations](docs/operations.md) for validation and future health checks.
+- **Contributions:** Read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before proposing a change.
+- **Bug reports and feature requests:** Use [GitHub Issues](https://github.com/neurwerk/k8s_stack_addon_dify/issues) for reproducible bugs and clearly scoped feature requests.
 
-## What It Changes
+## Security
 
-- Adds Keycloak OIDC authentication and sign-in UI integration.
-- Uses Dify's upstream PostgreSQL 18-compatible UUID migration and OAuth service;
-  retains the retry-safe concurrent-index migration.
-- Adds single-workspace model-provider bootstrap behavior.
-- Bundles a checksum-pinned, unmodified Dify OpenAI-compatible plugin package.
+Report vulnerabilities privately by following the instructions in [SECURITY.md](SECURITY.md).
 
-`customizations/scripts/patch_dify.py` applies guarded changes to the pinned upstream
-API and Web sources. `customizations/api/neurwerk_settings.py` extends configuration,
-and `customizations/api/neurwerk_sso.py` integrates Keycloak with upstream's OAuth
-application service. See
-`NOTICE-CHANGES.md` for the change inventory and `THIRD_PARTY_NOTICES.md` for
-license and provenance details.
+## Licensing
 
-## Version Contract
+Original build tools, tests, and documentation use the [MIT License](LICENSE).
 
-`DIFY_VERSION` is the authoritative upstream release. API and Web provenance
-are pinned separately:
+Dify itself, including our changes to its code, uses the [Dify Open Source License](LICENSES/Dify-LICENSE). It is based on Apache 2.0, with extra rules about running multiple workspaces and changing Dify's logo or copyright notices in its web interface. Check Dify's license for the permissions you need.
 
-- `DIFY_API_IMAGE_DIGEST`: the immutable multi-platform digest of the upstream
-  `langgenius/dify-api` base image.
-- `DIFY_SOURCE_REVISION`: the Git commit resolved by the upstream tag.
-- `DIFY_SOURCE_SHA256`: the SHA-256 of the GitHub source archive used by the Web
-  build.
-- `NODE_IMAGE_DIGEST`: the authoritative OCI index digest for the Web build and
-  runtime base `docker.io/library/node:24.20.0-alpine`.
-- `ALPINE_IMAGE_DIGEST`: the authoritative OCI index digest for the Web source
-  stage base `docker.io/library/alpine:3.21`.
+The bundled OpenAI-compatible plugin uses the [Apache License 2.0](LICENSES/Apache-2.0.txt).
 
-When changing Dify, update its four provenance files together. When changing a
-Web base tag, update its digest file in the same change. The API Dockerfile uses
-the digest-pinned base, while the Web Dockerfile uses digest-pinned Node and
-Alpine inputs and rejects a source archive that does not match the pinned
-checksum. OCI labels distinguish the Web runtime base from its source-stage
-base and Dify source provenance.
-
-The API overlay uses the PyJWT and cryptography versions already installed
-in the immutable Dify API base image.
-
-Verify the upstream tag, source archive, OCI index digests, and bundled plugin
-without building an image:
-
-```bash
-./scripts/verify-sources.sh
-```
-
-## Validate
-
-Install [uv](https://docs.astral.sh/uv/) and ShellCheck, then run:
-
-```bash
-uv sync --locked --dev
-uv run ruff check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts
-uv run ruff format --check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts
-shellcheck deploy.sh scripts/verify-sources.sh
-./scripts/verify-sources.sh
-```
-
-## Build And Publish
-
-Image construction and publication are intentionally user-operated. You need a
-clean Git checkout, Docker with Buildx, Python 3, and GHCR credentials with
-`write:packages`. Choose an explicit immutable overlay version beginning with
-the upstream version, for example:
-
-```bash
-./deploy.sh 1.17.1-kc-v1
-```
-
-The prompts default to both API and Web images, `linux/amd64`, and registry
-push. A single push choice applies to every selected platform. A local load is
-limited to one platform because Docker cannot load a multi-platform image into
-the local image store.
-
-The script never creates or publishes `latest`. Before a push it:
-
-1. fetches canonical `origin/main` and requires the clean `HEAD` commit to be
-   exactly equal to it;
-2. obtains authenticated GHCR `pull,push` tokens for every selected package;
-3. opens a temporary empty blob-upload session for every package and requires
-   HTTP 202 to prove push permission;
-4. attempts to cancel each empty session, but reports cleanup failure as a
-   warning because OCI defines cancellation as best-effort and GHCR expires
-   unfinished uploads after 10 minutes;
-5. requires every final tag lookup to return an explicit absent result; and
-6. logs Docker in to `ghcr.io` with the same verified credentials.
-
-Set `GHCR_USERNAME` and `GHCR_TOKEN`, or enter them at the private prompts. The
-token needs `write:packages`. The script passes it to `docker login` through
-stdin and does not print it, so Buildx and the preflight use the same account.
-Docker login runs only after every destination passes preflight. It updates the
-`ghcr.io` entry in the configured Docker credential store (or Docker config),
-can replace a previously stored GHCR login, and persists after the script exits.
-Run `docker logout ghcr.io` afterward if the credential should not remain
-stored. Network, authentication, authorization, and tag-response ambiguity
-abort before the first build. Cleanup warnings do not block publication because
-the accepted upload initiation already proved push access. Existing final tags
-are never reused.
-
-On success the script reports each exact tag and resulting content digest;
-retain those digests with the release record.
-
-## Publication Atomicity
-
-GHCR does not provide a transaction spanning the API and Web packages. The
-script preflights all selected destinations before any build or push, which
-prevents predictable partial releases, but the package pushes remain sequential.
-A failure after the first package is published can leave a partial release. In
-that case, preserve the published immutable tag and rerun only the missing
-package from the same clean source commit and version.
-
-If recovery requires a source change, do not complete the partial version from
-a different commit. Preserve its published tags, choose a new overlay version,
-and publish every required image from the corrected canonical commit.
-
-Tag absence checks also cannot reserve a tag. Exclusive operator coordination
-is still required to prevent another publisher racing between preflight and
-push; GHCR does not expose a conditional create-only tag operation.
-
-Automation and agents must not run `deploy.sh`, build these images, or publish
-them.
-
-## License
-
-Neurwerk-owned additions and build tooling are MIT licensed. Dify-derived files
-remain under Dify's Open Source License, which is based on Apache License 2.0
-with additional conditions. The bundled official plugin is Apache-2.0. See
-`THIRD_PARTY_NOTICES.md` before using or redistributing this repository or its
-images.
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for third-party sources and licensing information.
