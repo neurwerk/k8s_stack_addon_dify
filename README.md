@@ -16,6 +16,10 @@ The Dify add-on provides an optional Dify package for neurwerk.base, with API an
 |  |  |
 | [Dify Add-on](https://github.com/neurwerk/k8s_stack_addon_dify) | Optional Dify package with API and web customizations, including single-workspace enforcement (**this repo**). |
 
+## Documentation
+
+See [Repository documentation](docs/README.md).
+
 ## Contributing and support
 
 - **Contributions:** Read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before proposing a change.
