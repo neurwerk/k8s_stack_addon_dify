@@ -11,6 +11,8 @@ authKeycloak:
     - llm:invoke
     - model:remote/example/model:invoke
 frontendDify:
+  agentGateway:
+    bindingId: local
   postgres:
     user: dify
     database: dify

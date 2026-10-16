@@ -2,6 +2,13 @@
 # Pulled directly from: docker.io/langgenius/dify-plugin-daemon
 # Pinned here (chart defaults)
 frontendDify:
+  agentGateway:
+    # Select an enabled company/local openai-chat-completions-v1 binding.
+    bindingId: ""
+    adapterImage: docker.io/library/nginx:1.30.6-alpine@sha256:970364228b1e4f932abc22d321932816782cca8a20b85a77552a7cfe9acfb3b5
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {cpu: 250m, memory: 64Mi}
   pluginDaemonImage: docker.io/langgenius/dify-plugin-daemon:0.6.10-local@sha256:34412a22d1e1d1a6c73727fef88cffbcdd9be7a21bf9ad3076b4bf5c1b88fd9b
   pullPolicy: IfNotPresent
   postgres:

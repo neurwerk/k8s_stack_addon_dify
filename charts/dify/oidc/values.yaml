@@ -18,4 +18,4 @@ resources:
     memory: 256Mi
 
 k8sTools:
-  image: ghcr.io/neurwerk/k8s-stack-tooling:0.9.0@sha256:009b3198e527eefb3cc518980158d19da075773e9ff832135695992fb07a3ef3
+  image: ghcr.io/neurwerk/k8s-stack-tooling:0.9.1@sha256:1786fcfa022cfd4bcf30985cc36a537e8e6e5b359658d77431a2b32237bd4833

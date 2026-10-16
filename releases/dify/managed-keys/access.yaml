@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-dify-agentgateway-access
+  namespace: infra-agentgateway
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: infra-agentgateway-gateway
+      gateway.networking.k8s.io/gateway-name: infra-agentgateway-gateway
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: frontend-dify
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: plugin-daemon
+              app.kubernetes.io/instance: frontend-dify-plugin-daemon
+      ports:
+        - {protocol: TCP, port: 8082}
