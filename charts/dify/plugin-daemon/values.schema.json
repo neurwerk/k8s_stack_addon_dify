@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "frontendDify": {
+      "type": "object",
+      "properties": {
+        "agentGateway": {
+          "type": "object",
+          "required": ["bindingId", "adapterImage"],
+          "properties": {
+            "bindingId": {"type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[a-z]([-a-z0-9]*[a-z0-9])?$"},
+            "adapterImage": {"type": "string", "pattern": "^docker.io/library/nginx:[0-9]+\\.[0-9]+\\.[0-9]+-alpine@sha256:[a-f0-9]{64}$"},
+            "resources": {"type": "object"}
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

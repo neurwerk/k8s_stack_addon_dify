@@ -3,7 +3,7 @@ kind: AddonRelease
 metadata:
   name: dify
 spec:
-  version: 0.1.0
+  version: 0.1.1
   status: ready
   sourceName: dify-addon
   configurationKey: dify
@@ -19,7 +19,7 @@ spec:
     - {kind: ConfigMap, namespace: infra-cert-manager, name: client-values, owner: client}
   prerequisites:
     base: 0.3.26
-    tooling: 0.9.0
+    tooling: 0.9.1
     stackSetup: 0.3.0
     baseCharts:
       - charts/postgres/addon

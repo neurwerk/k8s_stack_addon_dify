@@ -17,12 +17,47 @@ spec:
       app.kubernetes.io/instance: frontend-dify-plugin-daemon
   template:
     metadata:
+      annotations:
+        checksum/gateway-adapter: {{ include (print $.Template.BasePath "/gateway-adapter.yaml") . | sha256sum }}
       labels:
         app.kubernetes.io/name: plugin-daemon
         app.kubernetes.io/instance: frontend-dify-plugin-daemon
         app.kubernetes.io/part-of: frontend-dify
     spec:
+      automountServiceAccountToken: false
       containers:
+        - name: gateway-adapter
+          image: {{ .Values.frontendDify.agentGateway.adapterImage | quote }}
+          command: [nginx]
+          args: [-c, /etc/nginx/gateway.conf, -g, "daemon off;"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            {{- toYaml .Values.frontendDify.agentGateway.resources | nindent 12 }}
+          volumeMounts:
+            - {name: gateway-adapter, mountPath: /etc/nginx/gateway.conf, subPath: nginx.conf, readOnly: true}
+            - {name: gateway-adapter-tmp, mountPath: /tmp}
+          startupProbe:
+            exec:
+              command: [wget, -q, -O, /dev/null, "http://127.0.0.1:8080/health"]
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command: [wget, -q, -O, /dev/null, "http://127.0.0.1:8080/health"]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: [wget, -q, -O, /dev/null, "http://127.0.0.1:8080/health"]
+            periodSeconds: 10
         - name: plugin-daemon
           image: {{ .Values.frontendDify.pluginDaemonImage }}
           imagePullPolicy: {{ .Values.frontendDify.pullPolicy }}
@@ -112,6 +147,13 @@ spec:
           resources:
             {{- toYaml .Values.frontendDify.pluginDaemon.resources | nindent 12 }}
       volumes:
+        - name: gateway-adapter
+          configMap:
+            name: frontend-dify-gateway-adapter
+        - name: gateway-adapter-tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
         - name: storage
           persistentVolumeClaim:
             claimName: frontend-dify-plugin-daemon-pvc

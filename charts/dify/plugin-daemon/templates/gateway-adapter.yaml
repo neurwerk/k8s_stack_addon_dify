@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-dify-gateway-adapter
+  namespace: {{ .Release.Namespace }}
+data:
+  nginx.conf: |
+    pid /tmp/nginx.pid;
+    worker_processes 1;
+    error_log /dev/stderr crit;
+    events { worker_connections 256; }
+    http {
+      access_log off;
+      client_body_temp_path /tmp/client-body;
+      proxy_temp_path /tmp/proxy;
+      fastcgi_temp_path /tmp/fastcgi;
+      uwsgi_temp_path /tmp/uwsgi;
+      scgi_temp_path /tmp/scgi;
+      client_max_body_size 20m;
+      map $http_authorization $valid_identity {
+        default 0;
+        "~^Bearer [A-Za-z0-9._~-]+$" 1;
+      }
+      server {
+        listen 127.0.0.1:8080;
+        location = /health { return 200 "ok\n"; }
+        location = /v1/chat/completions {
+          if ($request_method != POST) { return 405; }
+          if ($request_uri != /v1/chat/completions) { return 404; }
+          if ($valid_identity = 0) { return 401; }
+          proxy_http_version 1.1;
+          proxy_set_header Connection "";
+          proxy_set_header X-Neurwerk-Authorization $http_authorization;
+          proxy_set_header Authorization "";
+          proxy_set_header Proxy-Authorization "";
+          proxy_set_header Cookie "";
+          proxy_buffering off;
+          proxy_request_buffering off;
+          proxy_read_timeout 600s;
+          proxy_send_timeout 600s;
+          proxy_next_upstream off;
+          proxy_pass http://infra-agentgateway-gateway.infra-agentgateway.svc.cluster.local:8082/bindings/{{ .Values.frontendDify.agentGateway.bindingId }}/v1/chat/completions;
+        }
+        location / { return 404; }
+      }
+    }

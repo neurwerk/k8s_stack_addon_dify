@@ -7,6 +7,7 @@ dependencies = []
 [dependency-groups]
 dev = [
   "ruff>=0.16.5,<0.17",
+  "pyyaml>=6.0,<7",
 ]
 
 [tool.uv]
