@@ -102,8 +102,6 @@ spec:
             # fixed Secret references owned by this chart.
             - name: MODEL_PROVIDER_CREDENTIALS
               value: {{ $modelProviders | toJson | quote }}
-            - name: MODEL_SETTINGS
-              value: '{"openai_api_compatible": {"enabled": true}}'
           envFrom:
             - secretRef:
                 name: frontend-dify-secret
