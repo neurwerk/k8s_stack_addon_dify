@@ -11,10 +11,12 @@ authKeycloak:
 canonicalEndpointRouting:
   mode: internal-traefik
 
+dify:
+  enabled: false
+  hostname: ""
 frontendDify:
   apiImage: ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f
   pullPolicy: IfNotPresent
-  hostname: ""
   postgres:
     host: postgres-operations.infra-postgres-operations.svc.cluster.local
     servicePort: 5432

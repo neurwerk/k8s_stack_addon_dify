@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    helm.sh/resource-policy: keep
   name: frontend-dify-plugin-daemon-pvc
   namespace: frontend-dify
   labels:

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "dify": {
+      "type": "object",
+      "required": ["enabled", "hostname"],
+      "properties": {"enabled": {"type": "boolean"}, "hostname": {"type": "string"}},
+      "if": {"properties": {"enabled": {"const": true}}},
+      "then": {"properties": {"hostname": {"pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$"}}}
+    },
+    "frontendDify": {"type": "object", "properties": {"hostname": false}},
+    "authKeycloak": {"type": "object", "properties": {"difyRedirectUri": false, "difyWebOrigin": false}}
+  }
+}

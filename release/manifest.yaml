@@ -1,0 +1,54 @@
+apiVersion: addons.neurwerk.com/v1alpha1
+kind: AddonRelease
+metadata:
+  name: dify
+spec:
+  version: 0.1.0
+  status: staged
+  sourceName: dify-addon
+  configurationKey: dify
+  inputs:
+    - {kind: ConfigMap, namespace: auth-keycloak, name: auth-keycloak-app-defaults, owner: base}
+    - {kind: ConfigMap, namespace: auth-keycloak, name: client-values, owner: client}
+    - {kind: ConfigMap, namespace: auth-keycloak, name: keycloak-product-values, owner: client}
+    - {kind: ConfigMap, namespace: auth-keycloak, name: dify-keycloak-access-values, owner: client}
+    - {kind: ConfigMap, namespace: auth-keycloak-api-key-bridge, name: client-values, owner: client}
+    - {kind: ConfigMap, namespace: auth-keycloak-api-key-bridge, name: keycloak-product-values, owner: client}
+    - {kind: ConfigMap, namespace: frontend-dify, name: client-values, owner: client}
+    - {kind: ConfigMap, namespace: frontend-dify, name: dify-product-values, owner: client}
+    - {kind: ConfigMap, namespace: infra-cert-manager, name: client-values, owner: client}
+  prerequisites:
+    base: 0.3.26
+    tooling: 0.9.0
+    stackSetup: 0.3.0
+    baseCharts:
+      - charts/postgres/addon
+      - charts/keycloak/addon-access
+  packages:
+    - name: namespaces
+      path: releases/namespaces/dify
+    - name: secret-sync
+      path: releases/dify/secret-sync
+      dependsOn: [namespaces]
+    - name: database
+      path: releases/dify/database
+      dependsOn: [secret-sync]
+    - name: access
+      path: releases/dify/access
+      dependsOn: [secret-sync]
+    - name: oidc
+      path: releases/dify/oidc
+      dependsOn: [access, secret-sync]
+    - name: managed-keys
+      path: releases/dify/managed-keys
+      dependsOn: [oidc, secret-sync]
+    - name: certificate-approval
+      path: releases/dify/certificate-approval
+      dependsOn: [namespaces]
+    - name: app
+      path: releases/dify/app
+      dependsOn: [database, oidc, managed-keys, certificate-approval]
+  retention:
+    databases: retain
+    volumes: retain
+    credentials: retain

@@ -1,6 +1,8 @@
 # Dify addon defaults; client values provide the real hostname and sizing overrides.
+dify:
+  enabled: false
+  hostname: ""
 frontendDify:
-  hostname: place.holder
   api:
     replicas: 1
     resources:

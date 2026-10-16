@@ -2,4 +2,4 @@ apiVersion: v2
 name: frontend-dify-certificate-approval
 description: Exact approval for the Dify public Gateway certificate
 type: application
-version: 1.0.0
+version: 1.1.0

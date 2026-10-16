@@ -4,8 +4,6 @@ authKeycloak:
   hostname: keycloak.example.test
   difyClientId: dify
   difyAgentgatewayClientId: dify-agentgateway
-  difyRedirectUri: https://dify.example.test/console/api/oauth/authorize/keycloak
-  difyWebOrigin: https://dify.example.test
   agentgatewayClientRoles:
     - llm:invoke
     - model:remote/example/model:invoke
@@ -13,7 +11,6 @@ authKeycloak:
     - llm:invoke
     - model:remote/example/model:invoke
 frontendDify:
-  hostname: dify.example.test
   postgres:
     user: dify
     database: dify

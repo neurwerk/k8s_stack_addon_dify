@@ -32,13 +32,33 @@ spec:
         app.kubernetes.io/component: configuration
     spec:
       serviceAccountName: auth-keycloak-dify-oidc-service-account
-      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: init
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
           image: {{ (.Values.k8sTools).image | quote }}
           command:
-            - upsert-oidc-client
+            - upsert-scoped-oidc-client
           env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: KC_REALM_ROLE_SCOPE
+              value: '["dify-user", "dify-admin"]'
+            - name: KC_ROLE_CLAIM
+              value: realm_access.roles
             - name: KC_INTERNAL_URL
               value: "http://auth-keycloak-keycloak-service.auth-keycloak.svc.cluster.local"
             - name: KC_ADMIN_USER
@@ -58,9 +78,9 @@ spec:
                   name: dify-oidc-secret
                   key: difyOidcClientSecret
             - name: KC_REDIRECT_URI
-              value: {{ .Values.authKeycloak.difyRedirectUri | quote }}
+              value: {{ printf "https://%s/console/api/oauth/authorize/keycloak" .Values.dify.hostname | quote }}
             - name: KC_WEB_ORIGIN
-              value: {{ .Values.authKeycloak.difyWebOrigin | quote }}
+              value: {{ printf "https://%s" .Values.dify.hostname | quote }}
             - name: KC_REFRESH_TOKEN_ROTATION_ENABLED
               value: "true"
             - name: KC_CLIENT_AUDIENCES

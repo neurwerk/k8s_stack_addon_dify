@@ -6,8 +6,16 @@
 
 authKeycloak:
   difyClientId: dify
-  # difyRedirectUri: "" => set in client_*/config/client.yaml
-  # difyWebOrigin: "" => set in client_*/config/client.yaml
+dify:
+  enabled: false
+  hostname: ""
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
 
 k8sTools:
   image: ghcr.io/neurwerk/k8s-stack-tooling:0.7.3@sha256:efa09b2f29d02fbd07fe12774fd7d3db6bf4e02ef403c7be2c18196fbc956d99
