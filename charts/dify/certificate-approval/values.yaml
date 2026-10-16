@@ -2,6 +2,3 @@
 dify:
   enabled: false
   hostname: ""
-# Must equal dify.hostname; the existing Gateway consumes this value.
-frontendDify:
-  hostname: ""

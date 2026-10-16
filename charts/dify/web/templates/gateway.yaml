@@ -1,5 +1,5 @@
 {{- if .Values.externalGateway.enabled }}
-{{- $hostname := required "external Gateway hostname is required" .Values.frontendDify.hostname }}
+{{- $hostname := required "external Gateway hostname is required" .Values.dify.hostname }}
 {{- if eq $hostname "place.holder" }}{{ fail "place.holder cannot be used for an external Gateway" }}{{ end }}
 {{- $issuer := ternary "letsencrypt-production-cluster-issuer" "letsencrypt-staging-cluster-issuer" .Values.publicCertificates.useProduction }}
 # =============================================================================

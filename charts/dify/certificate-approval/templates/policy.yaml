@@ -3,9 +3,6 @@
 {{- if or (eq $hostname "place.holder") (hasSuffix ".place.holder" $hostname) -}}
 {{- fail "dify.hostname must be a real public hostname" -}}
 {{- end }}
-{{- if ne $hostname (.Values.frontendDify.hostname | default "" | trim) -}}
-{{- fail "dify.hostname must match frontendDify.hostname used by the Dify Gateway" -}}
-{{- end }}
 {{- range $issuer := list (dict "suffix" "staging" "name" "letsencrypt-staging-cluster-issuer") (dict "suffix" "production" "name" "letsencrypt-production-cluster-issuer") }}
 ---
 apiVersion: policy.cert-manager.io/v1alpha1

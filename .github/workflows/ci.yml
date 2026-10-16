@@ -26,13 +26,31 @@ jobs:
       - name: Install locked lint tools
         run: uv sync --locked --dev
 
-      - name: Lint and format
-        run: |
-          uv run ruff check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts
-          uv run ruff format --check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts
+      - name: Check out addon validation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: neurwerk/k8s_stack_tooling
+          ref: v0.9.0
+          path: .ci/tooling
 
-      - name: Check shell scripts
-        run: shellcheck deploy.sh scripts/verify-sources.sh
+      - name: Install Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: v4.2.4
 
-      - name: Verify source provenance and checksums
-        run: ./scripts/verify-sources.sh
+      - name: Install Kustomize
+        uses: supplypike/setup-bin@8e3f88b4f143d9b5c3497f0fc12d45c83c123787 # v4.0.1
+        with:
+          uri: https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz
+          name: kustomize
+          version: v5.8.1
+
+      - name: Install kubeconform
+        uses: supplypike/setup-bin@8e3f88b4f143d9b5c3497f0fc12d45c83c123787 # v4.0.1
+        with:
+          uri: https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz
+          name: kubeconform
+          version: 0.8.0
+
+      - name: Run full validation
+        run: make check ADDON_TOOLING="$GITHUB_WORKSPACE/.ci/tooling"

@@ -141,11 +141,11 @@ spec:
             - name: SERVER_WORKER_AMOUNT
               value: {{ .Values.frontendDify.config.SERVER_WORKER_AMOUNT | default "1" | quote }}
             - name: CONSOLE_API_URL
-              value: {{ printf "https://%s" .Values.frontendDify.hostname | quote }}
+              value: {{ printf "https://%s" .Values.dify.hostname | quote }}
             - name: CONSOLE_WEB_URL
-              value: {{ printf "https://%s" .Values.frontendDify.hostname | quote }}
+              value: {{ printf "https://%s" .Values.dify.hostname | quote }}
             - name: COOKIE_DOMAIN
-              value: {{ .Values.frontendDify.hostname | quote }}
+              value: {{ .Values.dify.hostname | quote }}
             - name: SERVICE_API_URL
               value: {{ printf "http://frontend-dify-api-service:%s" (.Values.frontendDify.api.ports.service.http | toString) | quote }}
             - name: STORAGE_TYPE

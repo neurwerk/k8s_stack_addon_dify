@@ -30,13 +30,13 @@ spec:
               protocol: TCP
           env:
             - name: CONSOLE_API_URL
-              value: {{ printf "https://%s" .Values.frontendDify.hostname | quote }}
+              value: {{ printf "https://%s" .Values.dify.hostname | quote }}
             - name: APP_API_URL
-              value: {{ printf "https://%s" .Values.frontendDify.hostname | quote }}
+              value: {{ printf "https://%s" .Values.dify.hostname | quote }}
             - name: NEXT_PUBLIC_COOKIE_DOMAIN
-              value: {{ .Values.frontendDify.hostname | quote }}
+              value: {{ .Values.dify.hostname | quote }}
             - name: NEXT_PUBLIC_SOCKET_URL
-              value: {{ printf "https://%s" .Values.frontendDify.hostname | quote }}
+              value: {{ printf "https://%s" .Values.dify.hostname | quote }}
             - name: NEXT_PUBLIC_ENABLE_AGENT_V2
               value: "true"
           livenessProbe:
