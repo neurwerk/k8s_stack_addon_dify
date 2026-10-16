@@ -20,13 +20,6 @@ Environment variables:
           ...
         }
 
-    MODEL_SETTINGS (optional) — JSON dict overriding defaults per provider:
-        {
-          "<provider>": {
-            "enabled": true | false,
-            "default_model_type": "llm"
-          }
-        }
 """
 
 import json
@@ -167,22 +160,6 @@ def _load_credentials_config():
     if not isinstance(cfg, dict):
         raise ValueError("MODEL_PROVIDER_CREDENTIALS must be a JSON object")
     return cfg
-
-
-def _load_settings_config():
-    """Read and validate the optional MODEL_SETTINGS object from env."""
-    raw = os.environ.get("MODEL_SETTINGS")
-    if not raw:
-        return {}
-
-    try:
-        settings = json.loads(raw) if isinstance(raw, str) else raw
-    except json.JSONDecodeError as exc:
-        raise ValueError("MODEL_SETTINGS is not valid JSON") from exc
-
-    if not isinstance(settings, dict):
-        raise ValueError("MODEL_SETTINGS must be a JSON object")
-    return settings
 
 
 def _provider_entries(credentials_config):
@@ -546,8 +523,6 @@ def _run() -> None:
 
             # ---- Ensure bundled plugins are installed (needed for providers) ----
             _ensure_plugins(tenant.id)
-
-            _load_settings_config()
 
             # ---- Provision each configured provider ----
             credentials_config = _load_credentials_config()
