@@ -2,7 +2,7 @@
 # Pulled directly from: docker.io/redis
 # Pinned here (chart defaults)
 frontendDify:
-  redisImage: docker.io/redis:7-alpine
+  redisImage: docker.io/redis:7.4.12-alpine@sha256:1cf73a2f04808e55a8bd2f5706c2aa0ebb0f71938f93deb7af79f48311cd5cb9
   pullPolicy: IfNotPresent
   redis:
     ports:
