@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "definitions": {
+    "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "limit": {"type": ["integer", "null"], "minimum": 1, "maximum": 9007199254740991},
+    "timestamp": {"type": "string", "format": "date-time", "maxLength": 40, "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"},
+    "capability": {"enum": ["supported", "unsupported", "unknown"]},
+    "capabilityName": {"enum": ["streaming", "tool_calling", "streaming_tool_calling", "structured_output", "image_input", "audio_input", "video_input", "document_input"]},
+    "metadata": {
+      "type": ["object", "null"], "additionalProperties": false,
+      "required": ["binding_id", "public_id", "limits", "capabilities", "provenance", "gateway_restrictions"],
+      "properties": {
+        "binding_id": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]{0,30}[a-z0-9])?$"},
+        "public_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$"},
+        "limits": {"type": "object", "additionalProperties": false, "required": ["context_tokens", "max_input_tokens", "max_output_tokens"], "properties": {
+          "context_tokens": {"$ref": "#/definitions/limit"}, "max_input_tokens": {"$ref": "#/definitions/limit"}, "max_output_tokens": {"$ref": "#/definitions/limit"}
+        }},
+        "capabilities": {"type": "object", "additionalProperties": false,
+          "required": ["streaming", "tool_calling", "streaming_tool_calling", "structured_output", "image_input", "audio_input", "video_input", "document_input"],
+          "properties": {
+            "streaming": {"$ref": "#/definitions/capability"}, "tool_calling": {"$ref": "#/definitions/capability"}, "streaming_tool_calling": {"$ref": "#/definitions/capability"}, "structured_output": {"$ref": "#/definitions/capability"},
+            "image_input": {"$ref": "#/definitions/capability"}, "audio_input": {"$ref": "#/definitions/capability"}, "video_input": {"$ref": "#/definitions/capability"}, "document_input": {"$ref": "#/definitions/capability"}
+        }},
+        "provenance": {"type": "object", "additionalProperties": false, "required": ["kind", "source", "observed_at", "valid_until"], "properties": {
+          "kind": {"enum": ["provider_api", "runtime", "reviewed_config"]},
+          "source": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[^\\x00-\\x1f\\x7f]+$"},
+          "observed_at": {"$ref": "#/definitions/timestamp"}, "valid_until": {"$ref": "#/definitions/timestamp"}
+        }},
+        "gateway_restrictions": {"type": "object", "additionalProperties": false, "required": ["blocked_capabilities", "evidence_refs"], "properties": {
+          "blocked_capabilities": {"type": "array", "maxItems": 8, "uniqueItems": true, "items": {"$ref": "#/definitions/capabilityName"}},
+          "evidence_refs": {"type": "array", "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^[^\\x00-\\x1f\\x7f]+$"}}
+        }}
+      }
+    }
+  },
+  "properties": {
+    "component": {"enum": ["support", "postgres-access"]},
+    "frontendDify": {
+      "type": "object",
+      "properties": {
+        "apiImage": {"type": "string", "pattern": "^ghcr.io/neurwerk/k8s-stack-addon-dify-api:1\\.17\\.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f$"},
+        "modelSync": {
+          "type": "object",
+          "required": ["enabled", "projection"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "resources": {"type": "object"},
+            "projection": {
+              "type": "object",
+              "properties": {
+                "schema_version": {"const": 1},
+                "catalog_revision": {"$ref": "#/definitions/digest"},
+                "metadata_revision": {"$ref": "#/definitions/digest"},
+                "projection_revision": {"$ref": "#/definitions/digest"},
+                "roles": {"type": "array", "maxItems": 128, "uniqueItems": true, "items": {"type": "string", "pattern": "^(llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z0-9][a-z0-9-]{0,47}:company-use)$"}},
+                "bindings": {"type": "array", "maxItems": 256, "items": {
+                  "type": "object", "required": ["id", "api_path"], "additionalProperties": false,
+                  "properties": {
+                    "id": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]{0,30}[a-z0-9])?$"},
+                    "api_path": {"type": "string", "maxLength": 128, "pattern": "^(/[a-z0-9][a-z0-9-]*)+$"}
+                  }
+                }},
+                "models": {"type": "array", "maxItems": 256, "items": {
+                  "type": "object", "required": ["binding_id", "public_id", "credential_mode", "metadata"], "additionalProperties": false,
+                  "properties": {
+                    "binding_id": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]{0,30}[a-z0-9])?$"}, "public_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$"},
+                    "credential_mode": {"enum": ["company", "local"]},
+                    "metadata": {"$ref": "#/definitions/metadata"}
+                  }
+                }}
+              },
+              "additionalProperties": false
+            }
+          },
+          "if": {"properties": {"enabled": {"const": true}}},
+          "then": {"properties": {"projection": {"required": ["schema_version", "catalog_revision", "metadata_revision", "projection_revision", "roles", "bindings", "models"]}}}
+        }
+      }
+    }
+  }
+}

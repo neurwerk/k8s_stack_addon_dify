@@ -1,0 +1,22 @@
+{{- if and .Values.frontendDify.modelSync.enabled (eq .Values.component "postgres-access") }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-dify-model-sync-postgres-ingress
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: postgres-operations
+      app.kubernetes.io/instance: postgres-operations
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: frontend-dify}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: model-sync
+              app.kubernetes.io/instance: frontend-dify-model-sync
+      ports: [{port: {{ .Values.frontendDify.postgres.providerPodPort }}, protocol: TCP}]
+{{- end }}

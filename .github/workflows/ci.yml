@@ -52,5 +52,10 @@ jobs:
           name: kubeconform
           version: 0.8.0
 
+      - name: Install HTTP boundary test runtime
+        run: sudo apt-get update && sudo apt-get install --yes nginx
+
       - name: Run full validation
+        env:
+          DIFY_TEST_NGINX: /usr/sbin/nginx
         run: make check ADDON_TOOLING="$GITHUB_WORKSPACE/.ci/tooling"

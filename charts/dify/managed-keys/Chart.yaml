@@ -2,5 +2,5 @@ apiVersion: v2
 name: dify-managed-keys
 description: Non-secret managed API-key grants for the Dify AgentGateway service account
 type: application
-version: 0.2.0
+version: 0.3.0
 appVersion: "1.0"
