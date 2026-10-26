@@ -18,10 +18,10 @@ spec:
             matchExpressions:
               - key: app.kubernetes.io/name
                 operator: In
-                values: [api, api-migration, worker, beat, plugin-daemon]
+                values: [api, api-migration, worker, beat, plugin-daemon, websocket]
               - key: app.kubernetes.io/instance
                 operator: In
-                values: [frontend-dify-api, frontend-dify-worker, frontend-dify-beat, frontend-dify-plugin-daemon]
+                values: [frontend-dify-api, frontend-dify-worker, frontend-dify-beat, frontend-dify-plugin-daemon, frontend-dify-websocket]
       ports:
         - protocol: TCP
           port: 9712
@@ -36,10 +36,10 @@ spec:
     matchExpressions:
       - key: app.kubernetes.io/name
         operator: In
-        values: [api, api-migration, worker, beat, plugin-daemon]
+        values: [api, api-migration, worker, beat, plugin-daemon, websocket]
       - key: app.kubernetes.io/instance
         operator: In
-        values: [frontend-dify-api, frontend-dify-worker, frontend-dify-beat, frontend-dify-plugin-daemon]
+        values: [frontend-dify-api, frontend-dify-worker, frontend-dify-beat, frontend-dify-plugin-daemon, frontend-dify-websocket]
   policyTypes: [Egress]
   egress:
     - to:

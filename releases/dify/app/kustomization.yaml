@@ -10,6 +10,7 @@ resources:
   - sandbox.yaml
   - shared.yaml
   - web.yaml
+  - websocket.yaml
   - worker.yaml
 generatorOptions:
   disableNameSuffixHash: true
