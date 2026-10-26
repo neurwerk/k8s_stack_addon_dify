@@ -8,7 +8,6 @@ import os
 import re
 import sys
 import time
-from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +25,14 @@ CAPABILITIES = {
     "document_input",
 }
 LOCK_KEY = 0x44494659424F4F54
+MAX_SAFE_INTEGER = 9_007_199_254_740_991
+MAX_DOCUMENT_BYTES = 1_048_576
+MAX_COMPANY_MODELS = 27
+BINDING_PATTERN = r"[a-z0-9](?:[-a-z0-9]{0,30}[a-z0-9])?"
+API_PATH_PATTERN = r"(?:/[a-z0-9][a-z0-9-]*)+"
+DIGEST_PATTERN = r"[a-f0-9]{64}"
+ROLE_PATTERN = r"(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z0-9][a-z0-9-]{0,47}:company-use)"
+TIMESTAMP_PATTERN = r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,9})?Z"
 
 
 def canonical_json(value: object) -> bytes:
@@ -44,12 +51,52 @@ def canonical_json(value: object) -> bytes:
     return result.encode("utf-8", errors="strict")
 
 
+def load_projection(text: str) -> dict:
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            require(key not in result, "duplicate JSON key")
+            result[key] = value
+        return result
+
+    def reject_number(value):
+        raise ValueError("contract numbers must be safe integers")
+
+    def safe_integer(text):
+        value = int(text)
+        require(abs(value) <= MAX_SAFE_INTEGER, "contract numbers must be safe integers")
+        return value
+
+    require(len(text.encode("utf-8")) <= MAX_DOCUMENT_BYTES, "projection exceeds size limit")
+    value = json.loads(
+        text,
+        object_pairs_hook=unique,
+        parse_float=reject_number,
+        parse_constant=reject_number,
+        parse_int=safe_integer,
+    )
+    require(isinstance(value, dict), "projection must be an object")
+    return value
+
+
+def bounded_text(value, maximum):
+    return (
+        isinstance(value, str)
+        and 1 <= len(value) <= maximum
+        and not re.search(r"[\x00-\x1f\x7f]", value)
+    )
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
 
 
 def timestamp(value: str) -> datetime:
+    require(
+        isinstance(value, str) and len(value) <= 40 and re.fullmatch(TIMESTAMP_PATTERN, value),
+        "timestamps must be UTC RFC3339",
+    )
     result = datetime.fromisoformat(value.replace("Z", "+00:00"))
     require(result.tzinfo is not None, "metadata timestamp requires timezone")
     return result
@@ -72,6 +119,19 @@ def validate_projection(
         },
         "invalid projection fields",
     )
+    require(len(canonical_json(projection)) <= MAX_DOCUMENT_BYTES, "projection exceeds size limit")
+    require(
+        all(
+            isinstance(value, str) and re.fullmatch(DIGEST_PATTERN, value)
+            for value in (
+                expected,
+                projection["projection_revision"],
+                projection["catalog_revision"],
+                projection["metadata_revision"],
+            )
+        ),
+        "invalid revision digest",
+    )
     require(
         type(projection["schema_version"]) is int and projection["schema_version"] == 1,
         "unsupported projection schema",
@@ -81,25 +141,18 @@ def validate_projection(
     require(
         revision == expected == projection["projection_revision"], "projection revision mismatch"
     )
-    require(
-        all(
-            isinstance(projection[k], str) and projection[k]
-            for k in (
-                "catalog_revision",
-                "metadata_revision",
-            )
-        ),
-        "missing source revision",
-    )
     roles = projection["roles"]
     require(
-        isinstance(roles, list) and roles == sorted(set(roles)) and "llm:invoke" in roles,
+        isinstance(roles, list)
+        and len(roles) <= 128
+        and roles == sorted(set(roles))
+        and "llm:invoke" in roles,
         "invalid projection roles",
     )
     require(
         all(
             re.fullmatch(
-                r"(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z][a-z0-9-]{0,31}:company-use)",
+                ROLE_PATTERN,
                 role,
             )
             for role in roles
@@ -107,17 +160,25 @@ def validate_projection(
         "invalid projection role",
     )
     bindings = {}
+    require(
+        isinstance(projection["bindings"], list) and len(projection["bindings"]) <= 256,
+        "too many bindings",
+    )
+    require(
+        isinstance(projection["models"], list) and len(projection["models"]) <= 256,
+        "too many models",
+    )
     for binding in projection["bindings"]:
         require(set(binding) == {"id", "api_path"}, "invalid binding fields")
-        require(
-            re.fullmatch(r"[a-z](?:[-a-z0-9]{0,30}[a-z0-9])?", binding["id"]), "invalid binding id"
-        )
+        require(re.fullmatch(BINDING_PATTERN, binding["id"]), "invalid binding id")
         require(binding["id"] not in bindings, "duplicate binding")
         require(
-            re.fullmatch(r"(?:/[A-Za-z0-9_-]+)+", binding["api_path"]), "invalid binding API path"
+            len(binding["api_path"]) <= 128 and re.fullmatch(API_PATH_PATTERN, binding["api_path"]),
+            "invalid binding API path",
         )
+        require(binding["api_path"] not in bindings.values(), "duplicate binding API path")
         bindings[binding["id"]] = binding["api_path"]
-    require(type(cap) is int and cap >= 0, "invalid company model cap")
+    require(type(cap) is int and 0 <= cap <= MAX_COMPANY_MODELS, "invalid company model cap")
     require(
         sum(m.get("credential_mode") == "company" for m in projection["models"]) <= cap,
         "company model cap exceeded",
@@ -163,8 +224,18 @@ def validate_projection(
             "invalid limits",
         )
         require(
-            all(v is None or (type(v) is int and v > 0) for v in limits.values()),
+            all(
+                v is None or (type(v) is int and 0 < v <= MAX_SAFE_INTEGER) for v in limits.values()
+            ),
             "invalid token limit",
+        )
+        require(
+            limits["context_tokens"] is None
+            or all(
+                v is None or v <= limits["context_tokens"]
+                for v in (limits["max_input_tokens"], limits["max_output_tokens"])
+            ),
+            "individual token limit exceeds context",
         )
         capabilities = metadata["capabilities"]
         require(set(capabilities) == CAPABILITIES, "invalid capability fields")
@@ -182,7 +253,7 @@ def validate_projection(
             "invalid provenance kind",
         )
         require(
-            isinstance(provenance["source"], str) and provenance["source"],
+            bounded_text(provenance["source"], 512),
             "missing metadata source",
         )
         require(
@@ -195,12 +266,17 @@ def validate_projection(
         )
         require(
             isinstance(restrictions["blocked_capabilities"], list)
+            and len(restrictions["blocked_capabilities"]) <= 8
+            and len(set(restrictions["blocked_capabilities"]))
+            == len(restrictions["blocked_capabilities"])
             and set(restrictions["blocked_capabilities"]) <= CAPABILITIES,
             "invalid blocked capability",
         )
         require(
             isinstance(restrictions["evidence_refs"], list)
-            and all(isinstance(v, str) and v for v in restrictions["evidence_refs"]),
+            and len(restrictions["evidence_refs"]) <= 32
+            and len(set(restrictions["evidence_refs"])) == len(restrictions["evidence_refs"])
+            and all(bounded_text(v, 2048) for v in restrictions["evidence_refs"]),
             "invalid restriction evidence",
         )
     return projection
@@ -275,6 +351,8 @@ def plan(model: dict, desired: dict | None, state: tuple) -> tuple[str, str | No
             return "skip_unmanaged_conflict", None
         return "create", None
     credential = owned[0]
+    if records and records[0].credential_id != credential.id:
+        return "skip_active_credential_conflict", None
     # Ownership must agree with its stable identity, not just the display name.
     original = credential.decrypted
     require(
@@ -292,34 +370,71 @@ def plan(model: dict, desired: dict | None, state: tuple) -> tuple[str, str | No
     return ("noop" if unchanged else "update"), credential.id
 
 
+def empty_result(mode):
+    return {
+        "mode": mode,
+        "counts": dict.fromkeys(("created", "updated", "unchanged", "skipped"), 0),
+        "planned_counts": dict.fromkeys(("created", "updated", "unchanged", "skipped"), 0),
+    }
+
+
 def synchronize(projection, backend, mode, api_key, report):
-    counts = Counter()
-    for model in projection["models"]:
-        if model["metadata"] is not None:
+    result = empty_result(mode)
+    plans = []
+    reasons = {}
+    try:
+        require(mode in {"preview", "apply"}, "invalid sync mode")
+        # Classify the complete intent before any native operation. This remains
+        # fixed when a later operation fails after earlier native commits.
+        for model in projection["models"]:
+            desired = credentials_for(model, api_key)
+            action, credential_id = plan(model, desired, backend.read(model))
+            category = (
+                "skipped"
+                if action.startswith("skip_")
+                else "unchanged"
+                if action == "noop"
+                else "updated"
+                if action == "update"
+                else "created"
+            )
+            result["planned_counts"][category] += 1
+            if category in {"unchanged", "skipped"}:
+                result["counts"][category] += 1
+            if action.startswith("skip_"):
+                reasons[action] = reasons.get(action, 0) + 1
+            plans.append((model, desired, action, credential_id, category))
+        for index, (model, desired, action, credential_id, category) in enumerate(plans, 1):
+            report({"action": action, "index": index})
+            if mode == "preview" or category in {"unchanged", "skipped"}:
+                continue
             require(
                 datetime.now(timezone.utc)
                 < timestamp(model["metadata"]["provenance"]["valid_until"]),
                 "metadata expired during sync",
             )
-        desired = credentials_for(model, api_key)
-        action, credential_id = plan(model, desired, backend.read(model))
-        counts[action] += 1
-        report({"action": action, "index": sum(counts.values())})
-        if mode == "preview" or action.startswith("skip_") or action == "noop":
-            continue
-        kwargs = dict(
-            model=model["public_id"], credentials=desired, credential_name=credential_name(model)
-        )
-        if action == "create":
-            backend.create(**kwargs)
-        elif action in {"update", "recover_update"}:
-            backend.update(**kwargs, credential_id=credential_id)
-        # Native create already creates the model row. Only attach a credential
-        # for a proven credential-only interruption; never switch existing rows.
-        if action in {"recover", "recover_update"}:
-            backend.attach(model["public_id"], credential_id)
-        report({"completed": sum(counts.values()), "action": action})
-    report({"mode": mode, "counts": dict(counts)})
+            # Recheck ownership immediately before validation, including active
+            # selection: native updates also propagate load-balancing secrets.
+            require(
+                plan(model, desired, backend.read(model)) == (action, credential_id),
+                "model state changed during sync",
+            )
+            kwargs = dict(
+                model=model["public_id"],
+                credentials=desired,
+                credential_name=credential_name(model),
+            )
+            if action == "create":
+                backend.create(**kwargs)
+            elif action in {"update", "recover_update"}:
+                backend.update(**kwargs, credential_id=credential_id)
+            if action in {"recover", "recover_update"}:
+                backend.attach(model["public_id"], credential_id)
+            result["counts"][category] += 1
+        report({**result, "status": "complete", "reasons": reasons})
+    except Exception:
+        report({**result, "status": "failed", "reasons": reasons})
+        raise
 
 
 @contextmanager
@@ -456,11 +571,11 @@ class NativeBackend:
         )
 
 
-def run() -> None:
+def run(report) -> None:
     mode = os.environ.get("DIFY_MODEL_SYNC_MODE", "")
     require(mode in {"preview", "apply"}, "explicit preview or apply mode required")
     projection = validate_projection(
-        json.loads(Path("/etc/dify-model-sync/projection.json").read_text()),
+        load_projection(Path("/etc/dify-model-sync/projection.json").read_text()),
         os.environ.get("EXPECTED_PROJECTION_REVISION", ""),
         int(os.environ["MAX_COMPANY_MODELS"]),
     )
@@ -495,7 +610,7 @@ def run() -> None:
                 NativeBackend(tenant.id, decoding),
                 mode,
                 api_key,
-                lambda value: print(json.dumps(value, sort_keys=True), flush=True),
+                report,
             )
 
 
@@ -503,11 +618,22 @@ if __name__ == "__main__":
     # Provider errors may contain credentials or inference bodies. Do not emit
     # upstream logging, exception text, chained exceptions, or tracebacks.
     logging.disable(logging.CRITICAL)
+    summary_reported = False
+
+    def emit(value):
+        global summary_reported
+        summary_reported = summary_reported or "counts" in value
+        print(json.dumps(value, sort_keys=True), flush=True)
+
     try:
-        run()
+        run(emit)
     except Exception:
-        print(
-            '{"status":"failed","detail":"model sync stopped; completed native commits are retained"}',
-            flush=True,
-        )
+        if not summary_reported:
+            mode = os.environ.get("DIFY_MODEL_SYNC_MODE", "")
+            emit(
+                {
+                    **empty_result(mode if mode in {"preview", "apply"} else "preview"),
+                    "status": "failed",
+                }
+            )
         sys.exit(1)

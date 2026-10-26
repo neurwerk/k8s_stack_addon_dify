@@ -22,7 +22,7 @@
 {{- end -}}
 {{- end -}}
 {{- range $roles -}}
-{{- if not (regexMatch "^(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z][a-z0-9-]{0,31}:company-use)$" .) }}{{- fail (printf "invalid Dify AgentGateway managed-key permission %q" .) }}{{- end -}}
+{{- if not (regexMatch "^(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z0-9][a-z0-9-]{0,47}:company-use)$" .) }}{{- fail (printf "invalid Dify AgentGateway managed-key permission %q" .) }}{{- end -}}
 {{- if not (has . $allRoles) }}{{- fail (printf "Dify AgentGateway managed-key permission %q is absent from authKeycloak.agentgatewayClientRoles" .) }}{{- end -}}
 {{- end -}}
 {{- $clientId := required "authKeycloak.difyAgentgatewayClientId is required" .Values.authKeycloak.difyAgentgatewayClientId -}}

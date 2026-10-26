@@ -59,21 +59,24 @@ spec:
             - {name: STORAGE_TYPE, value: {{ .Values.frontendDify.config.STORAGE_TYPE | quote }}}
             - {name: STORAGE_LOCAL_PATH, value: {{ .Values.frontendDify.config.STORAGE_LOCAL_PATH | quote }}}
             - {name: PLUGIN_DAEMON_URL, value: {{ .Values.frontendDify.config.PLUGIN_DAEMON_URL | quote }}}
-            - {name: AGENT_BACKEND_BASE_URL, value: "http://frontend-dify-agent-backend-service:5050"}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: frontend-dify-secret, key: DB_PASSWORD}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: frontend-dify-secret, key: REDIS_PASSWORD}
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef: {name: frontend-dify-secret, key: SECRET_KEY}
+            - name: PLUGIN_DAEMON_KEY
+              valueFrom:
+                secretKeyRef: {name: frontend-dify-secret, key: PLUGIN_DAEMON_KEY}
             - name: INNER_API_KEY_FOR_PLUGIN
               valueFrom:
                 secretKeyRef: {name: frontend-dify-secret, key: PLUGIN_DAEMON_KEY}
-            - name: AGENT_BACKEND_API_TOKEN
-              valueFrom:
-                secretKeyRef: {name: frontend-dify-secret, key: DIFY_AGENT_API_TOKEN}
-            - name: KEYCLOAK_OIDC_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef: {name: frontend-dify-openbao-secret, key: KEYCLOAK_OIDC_CLIENT_SECRET}
             - name: LLM_PROXY_API_KEY
               valueFrom:
                 secretKeyRef: {name: frontend-dify-openbao-secret, key: AGENTGATEWAY_API_KEY}
-          envFrom:
-            - secretRef: {name: frontend-dify-secret}
           volumeMounts:
             - {name: support, mountPath: /etc/dify-model-sync, readOnly: true}
             - {name: storage, mountPath: /app/api/storage, subPath: storage, readOnly: true}

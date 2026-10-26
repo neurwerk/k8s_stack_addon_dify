@@ -45,8 +45,8 @@ data:
         {{- if (.Values.frontendDify.modelSync | default dict).enabled }}
         {{- $ids := dict }}
         {{- range .Values.frontendDify.modelSync.projection.bindings }}
-        {{- if or (not (regexMatch "^[a-z]([-a-z0-9]{0,30}[a-z0-9])?$" .id)) (hasKey $ids .id) }}{{ fail "invalid or duplicate model-sync binding id" }}{{ end }}
-        {{- if not (regexMatch "^(/[A-Za-z0-9_-]+)+$" .api_path) }}{{ fail "invalid model-sync API path" }}{{ end }}
+        {{- if or (not (regexMatch "^[a-z0-9]([-a-z0-9]{0,30}[a-z0-9])?$" .id)) (hasKey $ids .id) }}{{ fail "invalid or duplicate model-sync binding id" }}{{ end }}
+        {{- if or (gt (len .api_path) 128) (not (regexMatch "^(/[a-z0-9][a-z0-9-]*)+$" .api_path)) }}{{ fail "invalid model-sync API path" }}{{ end }}
         {{- $_ := set $ids .id true }}
         location = /bindings/{{ .id }}/v1/chat/completions {
           if ($request_method != POST) { return 405; }

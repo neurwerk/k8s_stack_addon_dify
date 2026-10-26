@@ -51,6 +51,7 @@ class AdapterHTTPTests(unittest.TestCase):
                         "bindings": [
                             {"id": "company", "api_path": "/custom/company-chat"},
                             {"id": "other", "api_path": "/bindings/other"},
+                            {"id": "1company", "api_path": "/custom/one"},
                         ]
                     },
                 },
@@ -116,6 +117,7 @@ class AdapterHTTPTests(unittest.TestCase):
                         "/custom/company-chat/v1/chat/completions",
                     ),
                     ("/bindings/other/v1/chat/completions", "/bindings/other/v1/chat/completions"),
+                    ("/bindings/1company/v1/chat/completions", "/custom/one/v1/chat/completions"),
                 ):
                     status, body = request(route)
                     self.assertEqual(status, 200)

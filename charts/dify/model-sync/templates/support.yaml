@@ -1,5 +1,15 @@
 {{- if and .Values.frontendDify.modelSync.enabled (eq .Values.component "support") }}
 {{- if ne (int .Values.frontendDify.modelSync.projection.schema_version) 1 }}{{ fail "model sync requires projection schema 1" }}{{ end }}
+{{- range .Values.frontendDify.modelSync.projection.models }}
+{{- if .metadata }}
+{{- $limits := .metadata.limits }}
+{{- $context := toJson .metadata.limits.context_tokens }}
+{{- range $field := list "max_input_tokens" "max_output_tokens" }}
+{{- $limit := toJson (get $limits $field) }}
+{{- if and (ne $context "null") (ne $limit "null") (or (gt (len $limit) (len $context)) (and (eq (len $limit) (len $context)) (gt $limit $context))) }}{{ fail "individual token limit exceeds context" }}{{ end }}
+{{- end }}
+{{- end }}
+{{- end }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:

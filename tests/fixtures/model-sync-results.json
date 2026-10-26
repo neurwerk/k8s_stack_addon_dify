@@ -1,0 +1,4 @@
+{
+  "preview": {"mode": "preview", "counts": {"created": 0, "updated": 0, "unchanged": 0, "skipped": 0}, "planned_counts": {"created": 1, "updated": 0, "unchanged": 0, "skipped": 0}},
+  "apply": {"mode": "apply", "counts": {"created": 1, "updated": 0, "unchanged": 0, "skipped": 0}, "planned_counts": {"created": 1, "updated": 0, "unchanged": 0, "skipped": 0}}
+}

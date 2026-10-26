@@ -26,8 +26,8 @@ spec.loader.exec_module(sync)
 def projection():
     value = {
         "schema_version": 1,
-        "catalog_revision": "catalog-example",
-        "metadata_revision": "metadata-example",
+        "catalog_revision": "a" * 64,
+        "metadata_revision": "b" * 64,
         "roles": ["llm:invoke", "model:example/model:invoke", "provider:example:company-use"],
         "bindings": [{"id": "company", "api_path": "/custom/chat"}],
         "models": [
@@ -65,6 +65,10 @@ def sign(value):
     unsigned = {key: item for key, item in value.items() if key != "projection_revision"}
     value["projection_revision"] = hashlib.sha256(sync.canonical_json(unsigned)).hexdigest()
     return value
+
+
+def counts(**values):
+    return {**dict.fromkeys(("created", "updated", "unchanged", "skipped"), 0), **values}
 
 
 class Backend:
@@ -105,7 +109,7 @@ class ModelSyncTests(unittest.TestCase):
         value = {"z": "&(<>) café\u2028\u2029", "a": 1}
         expected = '{"a":1,"z":"\\u0026(\\u003c\\u003e) café\\u2028\\u2029"}'.encode("utf-8")
         self.assertEqual(sync.canonical_json(value), expected)
-        self.projection["catalog_revision"] = value["z"]
+        self.projection["models"][0]["metadata"]["provenance"]["source"] = value["z"]
         sign(self.projection)
         sync.validate_projection(self.projection, self.projection["projection_revision"], 1)
         with self.assertRaises(UnicodeEncodeError):
@@ -123,19 +127,127 @@ class ModelSyncTests(unittest.TestCase):
         self.run_sync("preview")
         self.assertEqual(self.backend.validations, 0)
         self.assertEqual(self.backend.records, [])
+        self.assertEqual(self.reports[-1]["counts"], counts())
+        self.assertEqual(self.reports[-1]["planned_counts"], counts(created=1))
         self.run_sync()
         self.assertEqual(self.backend.validations, 1)
         self.assertEqual(self.backend.attaches, 0)
         self.run_sync()
         self.assertEqual(self.backend.validations, 1)
-        self.assertEqual(self.reports[-1]["counts"], {"noop": 1})
+        self.assertEqual(self.reports[-1]["counts"], counts(unchanged=1))
         self.assertNotIn("test-secret", json.dumps(self.reports))
+
+    def test_real_helper_matches_tooling_result_contract_fixture(self):
+        fixture = json.loads((ROOT / "tests/fixtures/model-sync-results.json").read_text())
+        for mode in ("preview", "apply"):
+            self.run_sync(mode)
+            result = json.loads(json.dumps(self.reports[-1]))
+            self.assertEqual(
+                {key: result[key] for key in ("mode", "counts", "planned_counts")}, fixture[mode]
+            )
+
+    def test_partial_failure_retains_completed_counts_and_static_intent(self):
+        first = self.projection["models"][0]
+        second = copy.deepcopy(first)
+        second["public_id"] = second["metadata"]["public_id"] = "example/second"
+        self.projection["models"].append(second)
+        backend = self.backend
+
+        class PartialBackend:
+            def read(self, model):
+                return (
+                    backend.read(model)
+                    if model["public_id"] == first["public_id"]
+                    else ([], [], [], [])
+                )
+
+            def create(self, **kwargs):
+                if kwargs["model"] == second["public_id"]:
+                    raise RuntimeError("sensitive upstream body")
+                backend.create(**kwargs)
+
+        with self.assertRaises(RuntimeError):
+            sync.synchronize(
+                self.projection, PartialBackend(), "apply", "test-secret", self.reports.append
+            )
+        result = self.reports[-1]
+        self.assertEqual(result["counts"], counts(created=1))
+        self.assertEqual(result["planned_counts"], counts(created=2))
+        self.assertEqual(result["status"], "failed")
+        self.assertNotIn("sensitive", json.dumps(result))
+
+    def test_base_binding_provider_and_safe_integer_boundaries(self):
+        value = self.projection
+        value["bindings"][0]["id"] = "1company"
+        value["models"][0]["binding_id"] = value["models"][0]["metadata"]["binding_id"] = "1company"
+        value["roles"][-1] = "provider:1" + "a" * 47 + ":company-use"
+        value["models"][0]["metadata"]["limits"] = dict.fromkeys(
+            ("context_tokens", "max_input_tokens", "max_output_tokens"), sync.MAX_SAFE_INTEGER
+        )
+        sign(value)
+        sync.validate_projection(value, value["projection_revision"], 1)
+        values = {
+            "frontendDify": {"modelSync": {"enabled": True, "projection": value}},
+            "authKeycloak": {
+                "difyAgentgatewayClientRoles": value["roles"],
+                "agentgatewayClientRoles": value["roles"],
+            },
+        }
+        for chart in ("model-sync", "plugin-daemon", "managed-keys", "oidc-agentgateway"):
+            result = render(chart, values)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_metadata_boundary_rejections_and_hard_cloud_ceiling(self):
+        invalid = []
+        for field, value in (
+            ("context_tokens", sync.MAX_SAFE_INTEGER + 1),
+            ("max_output_tokens", 64001),
+            ("max_input_tokens", 64001),
+            ("max_output_tokens", True),
+            ("context_tokens", 64000.0),
+        ):
+            candidate = projection()
+            candidate["models"][0]["metadata"]["limits"][field] = value
+            invalid.append(candidate)
+        for field, value in (
+            ("source", "x" * 513),
+            ("source", "invalid\nsource"),
+            ("observed_at", "2020-01-01T00:00:00+00:00"),
+            ("valid_until", "2099-02-30T00:00:00Z"),
+        ):
+            candidate = projection()
+            candidate["models"][0]["metadata"]["provenance"][field] = value
+            invalid.append(candidate)
+        candidate = projection()
+        candidate["catalog_revision"] = "not-a-digest"
+        invalid.append(candidate)
+        candidate = projection()
+        candidate["bindings"] *= 257
+        invalid.append(candidate)
+        candidate = projection()
+        candidate["models"][0]["metadata"]["gateway_restrictions"]["evidence_refs"] = [
+            str(i) for i in range(33)
+        ]
+        invalid.append(candidate)
+        for index, candidate in enumerate(invalid):
+            with self.subTest(index=index), self.assertRaises(ValueError):
+                sign(candidate)
+                sync.validate_projection(candidate, candidate["projection_revision"], 1)
+        with self.assertRaisesRegex(ValueError, "company model cap"):
+            sync.validate_projection(self.projection, self.projection["projection_revision"], 28)
+        for raw in (
+            '{"duplicate":1,"duplicate":2}',
+            '{"limit":1.0}',
+            '{"limit":NaN}',
+            '{"limit":9007199254740992}',
+        ):
+            with self.subTest(raw=raw), self.assertRaises(ValueError):
+                sync.load_projection(raw)
 
     def test_update_preserves_ids_active_selection_default_and_disabled_state(self):
         self.run_sync()
         record = self.backend.records[0]
         record.is_valid = False
-        record.credential_id = "user-selected-other-credential"
         self.backend.settings.append(SimpleNamespace(enabled=False))
         self.backend.defaults.append(SimpleNamespace(model="existing-default"))
         before = copy.deepcopy((self.backend.records, self.backend.settings, self.backend.defaults))
@@ -143,11 +255,24 @@ class ModelSyncTests(unittest.TestCase):
         self.projection["models"][0]["metadata"]["limits"]["max_input_tokens"] = 124000
         self.run_sync()
         self.assertEqual(self.backend.validations, 2)
+        self.assertEqual(self.reports[-1]["counts"], counts(updated=1))
+        self.assertEqual(self.reports[-1]["planned_counts"], counts(updated=1))
         self.assertEqual(self.backend.attaches, 0)
         self.assertEqual(
             (self.backend.records, self.backend.settings, self.backend.defaults), before
         )
         self.assertEqual(self.backend.credentials[0].id, "credential-original")
+
+    def test_inactive_owned_credential_is_a_nonmutating_conflict(self):
+        self.run_sync()
+        self.backend.records[0].credential_id = "user-selected-other-credential"
+        self.projection["models"][0]["metadata"]["limits"]["max_output_tokens"] = 9000
+        before = copy.deepcopy(self.backend.credentials)
+        self.run_sync()
+        self.assertEqual(self.backend.validations, 1)
+        self.assertEqual(self.backend.credentials, before)
+        self.assertEqual(self.reports[-1]["counts"], counts(skipped=1))
+        self.assertEqual(self.reports[-1]["reasons"], {"skip_active_credential_conflict": 1})
 
     def test_recovers_only_proven_credential_only_interruption(self):
         self.run_sync()
@@ -168,9 +293,12 @@ class ModelSyncTests(unittest.TestCase):
         with patch.object(self.backend, "create", side_effect=commit_then_fail):
             with self.assertRaises(RuntimeError):
                 self.run_sync()
+        self.assertEqual(self.reports[-1]["counts"], counts())
+        self.assertEqual(self.reports[-1]["planned_counts"], counts(created=1))
+        self.assertEqual(self.reports[-1]["status"], "failed")
         self.run_sync()
         self.assertEqual(self.backend.validations, 1)
-        self.assertEqual(self.reports[-1]["counts"], {"noop": 1})
+        self.assertEqual(self.reports[-1]["counts"], counts(unchanged=1))
 
     def test_unsafe_interruption_and_identity_collision_fail_closed(self):
         self.run_sync()
@@ -191,10 +319,12 @@ class ModelSyncTests(unittest.TestCase):
             SimpleNamespace(id="user", credential_id="user", is_valid=False)
         )
         self.run_sync()
-        self.assertEqual(self.reports[-1]["counts"], {"skip_unmanaged_conflict": 1})
+        self.assertEqual(self.reports[-1]["counts"], counts(skipped=1))
+        self.assertEqual(self.reports[-1]["reasons"], {"skip_unmanaged_conflict": 1})
         self.backend.defaults.append(SimpleNamespace(model="default"))
         self.run_sync()
-        self.assertEqual(self.reports[-1]["counts"], {"skip_unmanaged_default": 1})
+        self.assertEqual(self.reports[-1]["counts"], counts(skipped=1))
+        self.assertEqual(self.reports[-1]["reasons"], {"skip_unmanaged_default": 1})
         self.assertEqual(self.backend.validations, 0)
 
     def test_missing_metadata_or_limits_do_not_guess(self):
@@ -204,13 +334,13 @@ class ModelSyncTests(unittest.TestCase):
         model["metadata"] = None
         self.run_sync()
         self.assertEqual(self.backend.validations, 0)
-        self.assertEqual(self.reports[-1]["counts"], {"skip_metadata": 1})
+        self.assertEqual(self.reports[-1]["counts"], counts(skipped=1))
 
     def test_revision_cap_stale_metadata_and_binding_collision_rejected(self):
         value = self.projection
         sync.validate_projection(value, value["projection_revision"], 1)
         with self.assertRaisesRegex(ValueError, "revision mismatch"):
-            sync.validate_projection(value, "wrong", 1)
+            sync.validate_projection(value, "c" * 64, 1)
         with self.assertRaisesRegex(ValueError, "cap exceeded"):
             sync.validate_projection(value, value["projection_revision"], 0)
         with self.assertRaisesRegex(ValueError, "stale"):
@@ -322,6 +452,22 @@ class ModelSyncTests(unittest.TestCase):
         )
         job = json.loads(support["data"]["job-template.json"])
         self.assertFalse(job["spec"]["template"]["spec"]["automountServiceAccountToken"])
+        container = job["spec"]["template"]["spec"]["containers"][0]
+        self.assertNotIn("envFrom", container)
+        self.assertEqual(
+            {
+                item["valueFrom"]["secretKeyRef"]["key"]
+                for item in container["env"]
+                if "valueFrom" in item
+            },
+            {
+                "DB_PASSWORD",
+                "REDIS_PASSWORD",
+                "SECRET_KEY",
+                "PLUGIN_DAEMON_KEY",
+                "AGENTGATEWAY_API_KEY",
+            },
+        )
         for chart in ("managed-keys", "oidc-agentgateway"):
             self.assertNotEqual(render(chart, values).returncode, 0)
             values["authKeycloak"] = {
