@@ -2,6 +2,9 @@
 # Pulled directly from: docker.io/langgenius/dify-plugin-daemon
 # Pinned here (chart defaults)
 frontendDify:
+  modelSync:
+    enabled: false
+    projection: {}
   agentGateway:
     # Select an enabled company/local openai-chat-completions-v1 binding.
     bindingId: ""

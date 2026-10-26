@@ -1,0 +1,48 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: frontend-dify-model-sync
+  namespace: frontend-dify
+spec:
+  releaseName: frontend-dify-model-sync
+  interval: 5m
+  dependsOn:
+    - {name: frontend-dify-api, namespace: frontend-dify}
+    - {name: frontend-dify-shared, namespace: frontend-dify}
+    - {name: frontend-dify-model-sync-access, namespace: frontend-dify}
+  chart:
+    spec:
+      chart: ./charts/dify/model-sync
+      sourceRef: {kind: GitRepository, name: dify-addon, namespace: flux-system}
+      interval: 10m
+  valuesFrom:
+    - {kind: ConfigMap, name: dify-defaults, valuesKey: values.yaml}
+    - {kind: ConfigMap, name: frontend-dify-app-defaults, valuesKey: values.yaml}
+    - {kind: ConfigMap, name: client-values, valuesKey: values.yaml}
+    - {kind: ConfigMap, name: dify-product-values, valuesKey: values.yaml}
+    - {kind: ConfigMap, name: dify-model-sync-values, valuesKey: values.yaml, optional: true}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: frontend-dify-model-sync-access
+  namespace: frontend-dify
+spec:
+  releaseName: frontend-dify-model-sync-access
+  targetNamespace: infra-postgres-operations
+  interval: 5m
+  dependsOn:
+    - {name: frontend-dify-postgres, namespace: infra-postgres-operations}
+  chart:
+    spec:
+      chart: ./charts/dify/model-sync
+      sourceRef: {kind: GitRepository, name: dify-addon, namespace: flux-system}
+      interval: 10m
+  values:
+    component: postgres-access
+  valuesFrom:
+    - {kind: ConfigMap, name: dify-defaults, valuesKey: values.yaml}
+    - {kind: ConfigMap, name: frontend-dify-app-defaults, valuesKey: values.yaml}
+    - {kind: ConfigMap, name: client-values, valuesKey: values.yaml}
+    - {kind: ConfigMap, name: dify-product-values, valuesKey: values.yaml}
+    - {kind: ConfigMap, name: dify-model-sync-values, valuesKey: values.yaml, optional: true}

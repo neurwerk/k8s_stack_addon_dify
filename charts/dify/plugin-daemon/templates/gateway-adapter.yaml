@@ -26,6 +26,7 @@ data:
         location = /health { return 200 "ok\n"; }
         location = /v1/chat/completions {
           if ($request_method != POST) { return 405; }
+          if ($request !~ "^POST /") { return 404; }
           if ($request_uri != /v1/chat/completions) { return 404; }
           if ($valid_identity = 0) { return 401; }
           proxy_http_version 1.1;
@@ -41,6 +42,32 @@ data:
           proxy_next_upstream off;
           proxy_pass http://infra-agentgateway-gateway.infra-agentgateway.svc.cluster.local:8082/bindings/{{ .Values.frontendDify.agentGateway.bindingId }}/v1/chat/completions;
         }
+        {{- if (.Values.frontendDify.modelSync | default dict).enabled }}
+        {{- $ids := dict }}
+        {{- range .Values.frontendDify.modelSync.projection.bindings }}
+        {{- if or (not (regexMatch "^[a-z]([-a-z0-9]{0,30}[a-z0-9])?$" .id)) (hasKey $ids .id) }}{{ fail "invalid or duplicate model-sync binding id" }}{{ end }}
+        {{- if not (regexMatch "^(/[A-Za-z0-9_-]+)+$" .api_path) }}{{ fail "invalid model-sync API path" }}{{ end }}
+        {{- $_ := set $ids .id true }}
+        location = /bindings/{{ .id }}/v1/chat/completions {
+          if ($request_method != POST) { return 405; }
+          if ($request !~ "^POST /") { return 404; }
+          if ($request_uri != /bindings/{{ .id }}/v1/chat/completions) { return 404; }
+          if ($valid_identity = 0) { return 401; }
+          proxy_http_version 1.1;
+          proxy_set_header Connection "";
+          proxy_set_header X-Neurwerk-Authorization $http_authorization;
+          proxy_set_header Authorization "";
+          proxy_set_header Proxy-Authorization "";
+          proxy_set_header Cookie "";
+          proxy_buffering off;
+          proxy_request_buffering off;
+          proxy_read_timeout 600s;
+          proxy_send_timeout 600s;
+          proxy_next_upstream off;
+          proxy_pass http://infra-agentgateway-gateway.infra-agentgateway.svc.cluster.local:8082{{ .api_path }}/v1/chat/completions;
+        }
+        {{- end }}
+        {{- end }}
         location / { return 404; }
       }
     }

@@ -6,6 +6,7 @@ resources:
   - api.yaml
   - beat.yaml
   - plugin-daemon.yaml
+  - model-sync.yaml
   - redis.yaml
   - sandbox.yaml
   - shared.yaml

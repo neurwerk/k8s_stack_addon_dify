@@ -1,0 +1,21 @@
+component: support
+frontendDify:
+  apiImage: ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f
+  pullPolicy: IfNotPresent
+  modelSync:
+    # No Job is created by Helm; the local operator CLI snapshots this support.
+    enabled: false
+    projection: {}
+    resources:
+      requests: {cpu: 100m, memory: 512Mi}
+      limits: {cpu: "1", memory: 2Gi}
+  postgres:
+    host: postgres-operations.infra-postgres-operations.svc.cluster.local
+    servicePort: 5432
+    providerPodPort: 9712
+    user: dify
+    database: dify
+  config:
+    STORAGE_TYPE: local
+    STORAGE_LOCAL_PATH: /app/api/storage
+    PLUGIN_DAEMON_URL: http://frontend-dify-plugin-daemon-service:5002

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "component": {"enum": ["support", "postgres-access"]},
+    "frontendDify": {
+      "type": "object",
+      "properties": {
+        "apiImage": {"type": "string", "pattern": "^ghcr.io/neurwerk/k8s-stack-addon-dify-api:1\\.17\\.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f$"},
+        "modelSync": {
+          "type": "object",
+          "required": ["enabled", "projection"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "resources": {"type": "object"},
+            "projection": {
+              "type": "object",
+              "properties": {
+                "schema_version": {"const": 1},
+                "catalog_revision": {"type": "string", "minLength": 1},
+                "metadata_revision": {"type": "string", "minLength": 1},
+                "projection_revision": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "roles": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+                "bindings": {"type": "array", "items": {
+                  "type": "object", "required": ["id", "api_path"], "additionalProperties": false,
+                  "properties": {
+                    "id": {"type": "string", "pattern": "^[a-z]([-a-z0-9]{0,30}[a-z0-9])?$"},
+                    "api_path": {"type": "string", "pattern": "^(/[A-Za-z0-9_-]+)+$"}
+                  }
+                }},
+                "models": {"type": "array", "items": {
+                  "type": "object", "required": ["binding_id", "public_id", "credential_mode", "metadata"], "additionalProperties": false,
+                  "properties": {
+                    "binding_id": {"type": "string"}, "public_id": {"type": "string"},
+                    "credential_mode": {"enum": ["company", "local"]},
+                    "metadata": {"type": ["object", "null"]}
+                  }
+                }}
+              },
+              "additionalProperties": false
+            }
+          },
+          "if": {"properties": {"enabled": {"const": true}}},
+          "then": {"properties": {"projection": {"required": ["schema_version", "catalog_revision", "metadata_revision", "projection_revision", "roles", "bindings", "models"]}}}
+        }
+      }
+    }
+  }
+}

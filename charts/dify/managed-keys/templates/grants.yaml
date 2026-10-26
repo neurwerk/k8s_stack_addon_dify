@@ -1,4 +1,7 @@
 {{- $roles := .Values.authKeycloak.difyAgentgatewayClientRoles | default list -}}
+{{- if (.Values.frontendDify.modelSync | default dict).enabled -}}
+{{- if ne (toJson ($roles | sortAlpha)) (toJson (.Values.frontendDify.modelSync.projection.roles | sortAlpha)) }}{{ fail "Dify roles must match model-sync projection roles" }}{{ end -}}
+{{- end -}}
 {{- if not (has "llm:invoke" $roles) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must include llm:invoke" }}{{- end -}}
 {{- if ne (len $roles) (len ($roles | uniq)) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must not contain duplicates" }}{{- end -}}
 {{- $catalogUpstreams := dict -}}

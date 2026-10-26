@@ -47,3 +47,7 @@ spec:
     - kind: ConfigMap
       name: dify-product-values
       valuesKey: values.yaml
+    - kind: ConfigMap
+      name: dify-model-sync-values
+      valuesKey: values.yaml
+      optional: true

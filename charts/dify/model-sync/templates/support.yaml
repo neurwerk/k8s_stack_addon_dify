@@ -1,0 +1,20 @@
+{{- if and .Values.frontendDify.modelSync.enabled (eq .Values.component "support") }}
+{{- if ne (int .Values.frontendDify.modelSync.projection.schema_version) 1 }}{{ fail "model sync requires projection schema 1" }}{{ end }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend-dify-model-sync
+  namespace: {{ .Release.Namespace }}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-dify-model-sync
+  namespace: {{ .Release.Namespace }}
+data:
+  projection.json: {{ .Values.frontendDify.modelSync.projection | toJson | quote }}
+  sync_models.py: |
+{{ .Files.Get "files/sync_models.py" | indent 4 }}
+  job-template.json: {{ include "dify-model-sync.job" . | fromYaml | toJson | quote }}
+{{- end }}

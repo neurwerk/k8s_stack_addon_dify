@@ -5,8 +5,8 @@ ADDON_TOOLING ?= $(WORKSPACE_ROOT)/tooling
 .PHONY: check
 check:
 	uv run --frozen --project "$(ADDON_TOOLING)" addon-check "$(CURDIR)"
-	uv run --frozen ruff check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts tests/charts
-	uv run --frozen ruff format --check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts tests/charts
+	uv run --frozen ruff check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts tests/charts charts/dify/model-sync/files
+	uv run --frozen ruff format --check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts tests/charts charts/dify/model-sync/files
 	shellcheck deploy.sh scripts/verify-sources.sh
 	./scripts/verify-sources.sh
 	uv run --frozen python -m unittest discover -s tests/charts -p 'test_*.py'

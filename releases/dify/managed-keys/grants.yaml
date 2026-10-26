@@ -34,3 +34,7 @@ spec:
     - kind: ConfigMap
       name: keycloak-product-values
       valuesKey: values.yaml
+    - kind: ConfigMap
+      name: dify-model-sync-values
+      valuesKey: values.yaml
+      optional: true

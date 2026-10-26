@@ -7,3 +7,7 @@ openrouterCatalog:
   enabled: true
   excludedModels: []
   models: []
+frontendDify:
+  modelSync:
+    enabled: false
+    projection: {}
