@@ -25,6 +25,8 @@ spec:
       namespace: infra-cert-manager
     - name: frontend-dify-api
       namespace: frontend-dify
+    - name: frontend-dify-websocket
+      namespace: frontend-dify
   chart:
     spec:
       chart: ./charts/dify/web

@@ -123,6 +123,10 @@ spec:
               app.kubernetes.io/instance: frontend-dify-worker
         - podSelector:
             matchLabels:
+              app.kubernetes.io/name: websocket
+              app.kubernetes.io/instance: frontend-dify-websocket
+        - podSelector:
+            matchLabels:
               app.kubernetes.io/name: agent-proxy
               app.kubernetes.io/instance: frontend-dify-agent
       ports:

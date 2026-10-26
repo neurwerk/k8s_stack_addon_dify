@@ -5,6 +5,9 @@ dify:
   enabled: false
   hostname: ""
 frontendDify:
+  websocket:
+    ports:
+      service: { http: 80 }
   webImage: ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v1@sha256:05e5297b43855a8ea6b8ec2a1fe631567f8b25146075e9e9a8ece3abc3e638c9
   pullPolicy: IfNotPresent
   api:

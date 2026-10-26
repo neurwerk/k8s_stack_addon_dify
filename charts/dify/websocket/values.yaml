@@ -1,0 +1,48 @@
+# Use the same customized image and runtime settings as the API chart.
+dify:
+  enabled: false
+  hostname: ""
+canonicalEndpointRouting:
+  mode: internal-traefik
+frontendDify:
+  apiImage: ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f
+  pullPolicy: IfNotPresent
+  postgres:
+    host: postgres-operations.infra-postgres-operations.svc.cluster.local
+    servicePort: 5432
+    providerPodPort: 9712
+    user: dify
+    database: dify
+    vectorDatabase: dify_vector
+  config:
+    LOG_LEVEL: WARNING
+    STORAGE_TYPE: local
+    STORAGE_LOCAL_PATH: /app/api/storage
+    VECTOR_STORE: pgvector
+    PLUGIN_DAEMON_URL: http://frontend-dify-plugin-daemon-service:5002
+    SANDBOX_API_URL: http://frontend-dify-sandbox-service:8194
+    ENABLE_SOCIAL_OAUTH_LOGIN: "true"
+    ALLOW_REGISTER: "false"
+    ALLOW_CREATE_WORKSPACE: "false"
+    ALLOW_SSO_REGISTER: "true"
+    ENFORCE_SINGLE_WORKSPACE: "true"
+    ENABLE_EMAIL_PASSWORD_LOGIN: "false"
+    ENABLE_EMAIL_CODE_LOGIN: "false"
+    AUTO_SETUP_ADMIN_EMAIL: "breakglass@place.holder"
+    DEFAULT_WORKSPACE_NAME: "default"
+  api:
+    ports:
+      service: { http: 80 }
+  websocket:
+    # One pod and one Gunicorn worker keep collaboration sessions in one process.
+    replicas: 1
+    ports:
+      container: { http: 5001 }
+      service: { http: 80 }
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi

@@ -24,6 +24,13 @@ spec:
     - matches:
         - path:
             type: PathPrefix
+            value: /socket.io
+      backendRefs:
+        - name: frontend-dify-websocket-service
+          port: {{ .Values.frontendDify.websocket.ports.service.http }}
+    - matches:
+        - path:
+            type: PathPrefix
             value: /console/api
       backendRefs:
         - name: frontend-dify-api-service

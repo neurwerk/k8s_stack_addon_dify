@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "dify": {
+      "type": "object",
+      "required": ["enabled", "hostname"],
+      "properties": {"enabled": {"type": "boolean"}, "hostname": {"type": "string"}},
+      "if": {"properties": {"enabled": {"const": true}}},
+      "then": {"properties": {"hostname": {"pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$"}}}
+    },
+    "canonicalEndpointRouting": {
+      "type": "object",
+      "properties": {"mode": {"enum": ["internal-traefik", "public-dns"]}}
+    },
+    "frontendDify": {
+      "type": "object",
+      "properties": {
+        "hostname": false,
+        "apiImage": {"type": "string", "minLength": 1},
+        "websocket": {
+          "type": "object",
+          "properties": {
+            "replicas": {"const": 1},
+            "ports": {
+              "type": "object",
+              "properties": {
+                "container": {"type": "object", "properties": {"http": {"const": 5001}}},
+                "service": {"type": "object", "properties": {"http": {"type": "integer", "minimum": 1, "maximum": 65535}}}
+              }
+            },
+            "resources": {
+              "type": "object",
+              "required": ["requests", "limits"],
+              "properties": {"requests": {"type": "object"}, "limits": {"type": "object"}}
+            }
+          }
+        }
+      }
+    },
+    "authKeycloak": {"type": "object", "properties": {"difyRedirectUri": false, "difyWebOrigin": false}}
+  }
+}
