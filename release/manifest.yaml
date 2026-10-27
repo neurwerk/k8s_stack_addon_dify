@@ -36,7 +36,7 @@ spec:
     baseChartVersions:
       charts/postgres/addon: 0.1.3
       charts/keycloak/addon-access: 0.1.6
-      charts/keycloak/addon-oidc: 0.2.0
+      charts/keycloak/addon-oidc: 0.2.1
   packages:
     - name: namespaces
       path: releases/namespaces/dify
