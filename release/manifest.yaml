@@ -27,8 +27,8 @@ spec:
     - {kind: ConfigMap, namespace: infra-cert-manager, name: client-values, owner: client}
   prerequisites:
     base: 0.4.0
-    tooling: 0.14.0
-    stackSetup: 0.7.0
+    tooling: 0.15.0
+    stackSetup: 0.8.0
     baseCharts:
       - charts/postgres/addon
       - charts/keycloak/addon-access
@@ -251,35 +251,3 @@ spec:
       - id: administrator
         label: Dify break-glass administrator
         value: {record: admin, field: initPassword}
-    lifecycle:
-      delivery:
-        - {kind: SecretStore, namespace: frontend-dify, name: frontend-dify-openbao-secret-store}
-        - {kind: SecretStore, namespace: auth-keycloak, name: auth-keycloak-openbao-secret-store}
-        - {kind: SecretStore, namespace: infra-postgres-operations, name: infra-postgres-operations-openbao-secret-store}
-        - {kind: SecretStore, namespace: auth-keycloak-api-key-bridge, name: auth-keycloak-api-key-bridge-openbao-secret-store}
-        - {kind: ExternalSecret, namespace: frontend-dify, name: frontend-dify-runtime-secret}
-        - {kind: ExternalSecret, namespace: frontend-dify, name: frontend-dify-openbao-secret}
-        - {kind: ExternalSecret, namespace: infra-postgres-operations, name: frontend-dify-postgres-password}
-        - {kind: ExternalSecret, namespace: auth-keycloak, name: dify-oidc-secret}
-        - {kind: ExternalSecret, namespace: auth-keycloak-api-key-bridge, name: dify-managed-key-verifiers}
-      provision:
-        - {kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-shared}
-        - {kind: HelmRelease, namespace: infra-postgres-operations, name: frontend-dify-postgres}
-        - {kind: HelmRelease, namespace: auth-keycloak, name: keycloak-dify-access}
-        - {kind: HelmRelease, namespace: auth-keycloak, name: dify-oidc-settings}
-        - {kind: HelmRelease, namespace: auth-keycloak, name: keycloak-dify-oidc}
-        - {kind: HelmRelease, namespace: auth-keycloak, name: keycloak-dify-agentgateway-oidc}
-        - {kind: HelmRelease, namespace: auth-keycloak-api-key-bridge, name: dify-managed-keys}
-      restart:
-        - {kind: StatefulSet, namespace: frontend-dify, name: frontend-dify-redis-stateful-set}
-        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-plugin-daemon-deployment}
-        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-sandbox-deployment}
-        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-agent-backend-deployment}
-        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-agent-sandbox-deployment}
-        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-agent-proxy-deployment}
-        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-api-deployment}
-        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-worker-deployment}
-        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-beat-deployment}
-        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-websocket-deployment}
-        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-web-gui-deployment}
-      rotate: []

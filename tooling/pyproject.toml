@@ -12,12 +12,12 @@ license = "MIT"
 license-files = ["LICENSE", "THIRD_PARTY.md"]
 requires-python = ">=3.12"
 dependencies = [
-    "k8s-stack-tooling==0.14.0",
+    "k8s-stack-tooling==0.15.0",
 ]
 
 [tool.uv.sources]
-k8s-stack-tooling = {url = "https://github.com/neurwerk/k8s_stack_tooling/releases/download/v0.14.0/k8s_stack_tooling-0.14.0-py3-none-any.whl"}
-openbao-stack-setup = {url = "https://github.com/neurwerk/k8s_stack_tooling/releases/download/stack-setup-v0.7.0/openbao_stack_setup-0.7.0-py3-none-any.whl"}
+k8s-stack-tooling = {url = "https://github.com/neurwerk/k8s_stack_tooling/releases/download/v0.15.0/k8s_stack_tooling-0.15.0-py3-none-any.whl"}
+openbao-stack-setup = {url = "https://github.com/neurwerk/k8s_stack_tooling/releases/download/stack-setup-v0.8.0/openbao_stack_setup-0.8.0-py3-none-any.whl"}
 
 [project.scripts]
 dify-model-sync = "dify_tooling.model_sync.main:main"
@@ -55,7 +55,7 @@ exclude = ["src/dify_tooling/payloads/sync_models.py"]
 testpaths = ["tests"]
 
 [dependency-groups]
-dev = ["ruff>=0.15.17", "ty>=0.0.49", "pytest>=8", "openbao-stack-setup==0.7.0"]
+dev = ["ruff>=0.15.17", "ty>=0.0.49", "pytest>=8", "openbao-stack-setup==0.8.0"]
 
 [project.urls]
 Homepage = "https://github.com/neurwerk/k8s_stack_addon_dify"
