@@ -49,3 +49,6 @@ spec:
       name: dify-model-sync-values
       valuesKey: values.yaml
       optional: true
+    - kind: ConfigMap
+      name: dify-service-approval-values
+      valuesKey: values.yaml

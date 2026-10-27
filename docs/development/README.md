@@ -8,11 +8,10 @@
 
 ## Local checks
 
-Use Python satisfying [pyproject.toml](../../pyproject.toml), Git, curl, tar, Make, and the tools selected by [.tool-versions](../../.tool-versions). Have a compatible Tooling checkout available for `addon-check`; CI selects its revision in [.github/workflows/ci.yml](../../.github/workflows/ci.yml). Run from this repository's root, including when using a worktree:
+Use Python satisfying [pyproject.toml](../../pyproject.toml), Git, curl, tar, Make, and the tools selected by [.tool-versions](../../.tool-versions). Product tooling installs an exact shared Tooling release in one locked environment. Supply the exact selected Base checkout for composition checks:
 
 ```bash
-export WORKSPACE_ROOT=/absolute/path/to/k8s_stack
-mise exec -- make check ADDON_TOOLING="$WORKSPACE_ROOT/tooling"
+mise exec -- make check BASE_REPO=/absolute/path/to/selected-base
 ```
 
 The [Makefile](../../Makefile) runs add-on package validation, Ruff lint/format checks, ShellCheck, source verification, chart unit tests, strict Helm linting, and Helm/Kustomize rendering through kubeconform. Missing custom-resource schemas are explicitly ignored by kubeconform; rendering is not cluster admission testing.
@@ -23,4 +22,8 @@ The [Makefile](../../Makefile) runs add-on package validation, Ruff lint/format 
 
 [deploy.sh](../../deploy.sh) is an interactive, operator-only API/Web image builder and publisher, despite its name. It requires a clean checkout at fetched canonical `origin/main`, pinned provenance, Docker/Buildx, and an immutable image version beginning with the selected upstream version. The Web Dockerfile builds upstream sources; there is no repository-local Web development server or full application dependency tree here.
 
-Agents must not run `deploy.sh`, build Dify images, or publish them. Operators follow the [shared Dify image-release procedure](https://github.com/neurwerk/docs/blob/main/dev/operations/image-releases.md#dify). Publication, chart pin updates, and client reconciliation are separate actions; the script is not a Flux deployment command.
+API/Web builds and publication remain operator-only. The separate tooling image uses `make tooling-build VERSION=<version> REVISION=<commit>` with `tooling/` as its context. Follow the [shared image-release procedure](https://github.com/neurwerk/docs/blob/main/dev/operations/image-releases.md#dify); publication, public package visibility, chart pins and client reconciliation are separate steps.
+
+Release checks require the committed lockfile resolved against the published shared wheel and its hashes. Candidate checks may install a reviewed shared wheel into a temporary environment or the local test environment; they do not establish a release lock or installable image. Never commit local wheel paths in a lockfile.
+
+The wheel sources are GitHub release `v0.14.0` for the runtime SDK and `stack-setup-v0.7.0` for setup integration tests. Their canonical URLs and archive hashes are recorded in `tooling/pyproject.toml` and `tooling/uv.lock`. The setup package is a development dependency, not part of the operational image. `make check BASE_REPO=...` checks browser and machine approvals and both images inside the enabled model-sync Job template against the selected Base.

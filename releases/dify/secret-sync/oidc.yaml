@@ -15,9 +15,9 @@ spec:
   data:
     - secretKey: difyOidcClientSecret
       remoteRef:
-        key: auth-keycloak/internal
+        key: addons/dify/oidc/browser
         property: difyOidcClientSecret
     - secretKey: difyAgentgatewayClientSecret
       remoteRef:
-        key: auth-keycloak/internal
+        key: addons/dify/oidc/service
         property: difyAgentgatewayClientSecret

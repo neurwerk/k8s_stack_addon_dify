@@ -1,4 +1,4 @@
-# ── Shared app defaults for all Dify components ────────────────────────────
+# Shared app defaults staged with the nonsecret delivery settings.
 # Image versions are pinned in chart defaults (charts/dify/*/values.yaml),
 # not in this file. Override per-client by setting in the client repo.
 frontendDify:

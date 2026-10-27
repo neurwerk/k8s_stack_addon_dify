@@ -21,3 +21,8 @@ frontendDify:
 dify:
   enabled: true
   hostname: dify.example.test
+serviceApproval:
+  clientId: dify-agentgateway
+  realmRoles: []
+  audiences: [agentgateway]
+  gatewayPermissions: [llm:invoke, 'model:remote/example/model:invoke']

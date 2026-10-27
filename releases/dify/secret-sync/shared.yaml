@@ -29,9 +29,6 @@ spec:
     - kind: ConfigMap
       name: frontend-dify-app-defaults
       valuesKey: values.yaml
-    - kind: Secret
-      name: frontend-dify-runtime-secret
-      valuesKey: values.yaml
     - kind: ConfigMap
       name: client-values
       valuesKey: values.yaml

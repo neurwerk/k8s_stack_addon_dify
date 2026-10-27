@@ -1,5 +1,4 @@
-# IMAGE SOURCE: tooling
-# k8sTools is a pinned neurwerk image used by this OIDC bootstrap Job.
+# IMAGE SOURCE: none; the Base OIDC chart executes the scoped helper.
 # =============================================================================
 # values.yaml — keycloak-oidc-configurations/dify
 # =============================================================================
@@ -16,6 +15,3 @@ resources:
   limits:
     cpu: 250m
     memory: 256Mi
-
-k8sTools:
-  image: ghcr.io/neurwerk/k8s-stack-tooling:0.9.2@sha256:552468022e3413e44dcc372790362bb22c9bbe32d253692db1e5c8ab11af522b

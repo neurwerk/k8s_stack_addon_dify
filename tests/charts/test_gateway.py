@@ -24,7 +24,7 @@ class GatewayTests(unittest.TestCase):
         config = config_map["data"]["nginx.conf"]
         shared = self.documents("shared", {})
         endpoint = urlsplit(
-            next(item for item in shared if item["kind"] == "Secret")["stringData"][
+            next(item for item in shared if item["kind"] == "ConfigMap")["data"][
                 "LLM_PROXY_ENDPOINT"
             ]
         )
@@ -98,9 +98,7 @@ class GatewayTests(unittest.TestCase):
             item["name"]: item.get("value")
             for item in job["spec"]["template"]["spec"]["containers"][0]["env"]
         }
-        self.assertEqual(
-            {item["roleName"] for item in json.loads(env["KC_SERVICE_ACCOUNT_ROLES"])}, expected
-        )
+        self.assertEqual(set(json.loads(env["KC_GATEWAY_ROLE_SCOPE"])), expected)
         grants = next(
             item for item in self.documents("managed-keys", values) if item["kind"] == "ConfigMap"
         )
