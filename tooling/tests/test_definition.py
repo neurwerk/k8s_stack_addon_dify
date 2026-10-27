@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from k8s_stack_tooling.addons import ContractError, check, load_manifest
+from k8s_stack_tooling.addons import check, load_manifest
 from openbao_stack_setup import client as client_module
 from openbao_stack_setup import declarative
 
@@ -15,11 +15,10 @@ from dify_tooling.cli import main
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_candidate_definition_and_unpublished_installation_boundary():
+def test_published_definition_satisfies_installable_metadata():
     assert main([str(ROOT)]) == 0
     check(ROOT)
-    with pytest.raises(ContractError, match="staged|digest"):
-        check(ROOT, installable=True)
+    check(ROOT, installable=True)
 
 
 def test_real_setup_preserves_keys_and_secondary_slot_acceptance():
