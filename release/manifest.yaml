@@ -1,10 +1,10 @@
-apiVersion: addons.neurwerk.com/v1alpha1
+apiVersion: addons.neurwerk.com/v1alpha2
 kind: AddonRelease
 metadata:
   name: dify
 spec:
   version: 0.1.4
-  status: ready
+  status: staged
   sourceName: dify-addon
   configurationKey: dify
   inputs:
@@ -12,24 +12,39 @@ spec:
     - {kind: ConfigMap, namespace: auth-keycloak, name: client-values, owner: client}
     - {kind: ConfigMap, namespace: auth-keycloak, name: keycloak-product-values, owner: client}
     - {kind: ConfigMap, namespace: auth-keycloak, name: dify-keycloak-access-values, owner: client}
+    - {kind: ConfigMap, namespace: auth-keycloak, name: dify-oidc-approval-values, owner: client}
+    - {kind: ConfigMap, namespace: auth-keycloak, name: dify-service-approval-values, owner: client}
+    - {kind: ConfigMap, namespace: auth-keycloak, name: client-openrouter-catalog-values, owner: client}
+    - {kind: ConfigMap, namespace: auth-keycloak, name: dify-model-sync-values, owner: client}
+    - {kind: ConfigMap, namespace: auth-keycloak-api-key-bridge, name: client-openrouter-catalog-values, owner: client}
+    - {kind: ConfigMap, namespace: auth-keycloak-api-key-bridge, name: dify-model-sync-values, owner: client}
+    - {kind: ConfigMap, namespace: frontend-dify, name: dify-model-sync-values, owner: client}
+    - {kind: ConfigMap, namespace: infra-postgres-operations, name: dify-model-sync-values, owner: client}
     - {kind: ConfigMap, namespace: auth-keycloak-api-key-bridge, name: client-values, owner: client}
     - {kind: ConfigMap, namespace: auth-keycloak-api-key-bridge, name: keycloak-product-values, owner: client}
     - {kind: ConfigMap, namespace: frontend-dify, name: client-values, owner: client}
     - {kind: ConfigMap, namespace: frontend-dify, name: dify-product-values, owner: client}
     - {kind: ConfigMap, namespace: infra-cert-manager, name: client-values, owner: client}
   prerequisites:
-    base: 0.3.26
-    tooling: 0.9.2
-    stackSetup: 0.3.0
+    base: 0.4.0
+    tooling: 0.14.0
+    stackSetup: 0.7.0
     baseCharts:
       - charts/postgres/addon
       - charts/keycloak/addon-access
+      - charts/keycloak/addon-oidc
+    baseChartVersions:
+      charts/postgres/addon: 0.1.3
+      charts/keycloak/addon-access: 0.1.6
+      charts/keycloak/addon-oidc: 0.2.1
   packages:
     - name: namespaces
       path: releases/namespaces/dify
     - name: secret-sync
       path: releases/dify/secret-sync
       dependsOn: [namespaces]
+      helmOutputs:
+        - {kind: ConfigMap, namespace: frontend-dify, name: frontend-dify-secret-template, helmRelease: frontend-dify-shared}
     - name: database
       path: releases/dify/database
       dependsOn: [secret-sync]
@@ -39,6 +54,8 @@ spec:
     - name: oidc
       path: releases/dify/oidc
       dependsOn: [access, secret-sync]
+      helmOutputs:
+        - {kind: ConfigMap, namespace: auth-keycloak, name: dify-oidc-settings, helmRelease: dify-oidc-settings}
     - name: managed-keys
       path: releases/dify/managed-keys
       dependsOn: [oidc, secret-sync]
@@ -47,8 +64,222 @@ spec:
       dependsOn: [namespaces]
     - name: app
       path: releases/dify/app
-      dependsOn: [database, oidc, managed-keys, certificate-approval]
+      dependsOn: [secret-sync, database, oidc, managed-keys, certificate-approval]
   retention:
     databases: retain
     volumes: retain
     credentials: retain
+  databases:
+    - id: application
+      service: {namespace: infra-postgres-operations, name: postgres-operations}
+      engine: postgresql
+      database: dify
+      role: dify
+      owner: dify
+      package: database
+      baseChart: charts/postgres/addon
+    - id: plugins
+      service: {namespace: infra-postgres-operations, name: postgres-operations}
+      engine: postgresql
+      database: dify_plugin
+      role: dify
+      owner: dify
+      package: database
+      baseChart: charts/postgres/addon
+    - id: vectors
+      service: {namespace: infra-postgres-operations, name: postgres-operations}
+      engine: postgresql
+      database: dify_vector
+      role: dify
+      owner: dify
+      package: database
+      baseChart: charts/postgres/addon
+      extensions: [vector]
+  artifacts:
+    - {id: tooling, role: product, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.4'}
+    - {id: api, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f'}
+    - {id: web, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v1@sha256:05e5297b43855a8ea6b8ec2a1fe631567f8b25146075e9e9a8ece3abc3e638c9'}
+    - {id: agent-backend, role: native, image: 'docker.io/langgenius/dify-agent-backend:1.17.1@sha256:a30c039bbead65d7fd8baf8c53fc867373f515c5721e46070ce03ed04c5f1e32'}
+    - {id: agent-sandbox, role: native, image: 'docker.io/langgenius/dify-agent-local-sandbox:1.17.1@sha256:f4d404c9dcdf80bd72f65e84c3f2bbd1f3404fd4b363db837176da8aaf771b1d'}
+    - {id: agent-proxy, role: native, image: 'docker.io/ubuntu/squid:6.6-24.04_beta@sha256:6a097f68bae708cedbabd6188d68c7e2e7a38cedd05a176e1cc0ba29e3bbe029'}
+    - {id: plugin-daemon, role: native, image: 'docker.io/langgenius/dify-plugin-daemon:0.6.10-local@sha256:34412a22d1e1d1a6c73727fef88cffbcdd9be7a21bf9ad3076b4bf5c1b88fd9b'}
+    - {id: gateway-adapter, role: native, image: 'docker.io/library/nginx:1.30.6-alpine@sha256:970364228b1e4f932abc22d321932816782cca8a20b85a77552a7cfe9acfb3b5'}
+    - {id: redis, role: native, image: 'docker.io/redis:7.4.12-alpine@sha256:1cf73a2f04808e55a8bd2f5706c2aa0ebb0f71938f93deb7af79f48311cd5cb9'}
+    - {id: sandbox, role: native, image: 'docker.io/langgenius/dify-sandbox:0.2.15@sha256:750e1111426ef31a9217b81c98cccfb750f17b182af3221102e420afa9f0928e'}
+    - {id: database-provisioner, role: native, image: 'ghcr.io/documentdb/documentdb/documentdb-local:pg18-0.116.0@sha256:01bb9408393fb6417cc32735f4566dee4b53bbab6df6b70c42797317da631f12'}
+    - {id: access-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.12.0@sha256:b70f0f93ca2c3e5cef9290af2db6480bec72cedc0289ecd232747996eb01091a'}
+    - {id: browser-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.14.0@sha256:a1db80f00e8579478382ecc34717af484cf75239008ae8dbe66b01632aa49305'}
+    - {id: service-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.14.0@sha256:a1db80f00e8579478382ecc34717af484cf75239008ae8dbe66b01632aa49305'}
+  consumers:
+    - {artifact: tooling, kind: Command, argv: [dify-validate, /work/addon]}
+    - {artifact: tooling, kind: Command, argv: [dify-model-sync, launch, --help]}
+    - {artifact: tooling, package: app, kind: JobTemplate, namespace: frontend-dify, name: frontend-dify-model-sync, templateKey: job-template.json, container: export-model-sync, location: initContainers, optional: true}
+    - {artifact: api, package: app, kind: JobTemplate, namespace: frontend-dify, name: frontend-dify-model-sync, templateKey: job-template.json, container: model-sync, optional: true}
+    - {artifact: api, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-api, container: api}
+    - {artifact: api, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-api, container: migration}
+    - {artifact: api, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-api, container: setup-model-provider, location: initContainers}
+    - {artifact: api, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-worker, container: worker}
+    - {artifact: api, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-beat, container: beat}
+    - {artifact: api, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-websocket, container: websocket}
+    - {artifact: web, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-web-gui, container: web-gui}
+    - {artifact: agent-backend, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-agent, container: agent-backend}
+    - {artifact: agent-sandbox, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-agent, container: agent-sandbox}
+    - {artifact: agent-proxy, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-agent, container: agent-proxy}
+    - {artifact: plugin-daemon, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-plugin-daemon, container: plugin-daemon}
+    - {artifact: gateway-adapter, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-plugin-daemon, container: gateway-adapter}
+    - {artifact: redis, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-redis, container: redis}
+    - {artifact: sandbox, package: app, kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-sandbox, container: sandbox}
+    - {artifact: database-provisioner, package: database, kind: HelmRelease, namespace: infra-postgres-operations, name: frontend-dify-postgres, container: provision}
+    - {artifact: access-provisioner, package: access, kind: HelmRelease, namespace: auth-keycloak, name: keycloak-dify-access, container: reconcile}
+    - {artifact: browser-provisioner, package: oidc, kind: HelmRelease, namespace: auth-keycloak, name: keycloak-dify-oidc, container: configure}
+    - {artifact: service-provisioner, package: oidc, kind: HelmRelease, namespace: auth-keycloak, name: keycloak-dify-agentgateway-oidc, container: init}
+  identities:
+    - id: browser
+      mode: browser
+      clientId: dify
+      secret: {record: browser, field: difyOidcClientSecret}
+      browserSettings:
+        namespace: auth-keycloak
+        settings: dify-oidc-settings
+        approval: dify-oidc-approval-values
+    - id: gateway-service
+      mode: service
+      clientId: dify-agentgateway
+      secret: {record: service, field: difyAgentgatewayClientSecret}
+      serviceSettings:
+        namespace: auth-keycloak
+        settings: keycloak-product-values
+        approval: dify-service-approval-values
+  setup:
+    records:
+      - id: database
+        path: addons/dify/database
+        fields:
+          postgresPassword:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+      - id: browser
+        path: addons/dify/oidc/browser
+        fields:
+          difyOidcClientSecret:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+      - id: service
+        path: addons/dify/oidc/service
+        fields:
+          difyAgentgatewayClientSecret:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+      - id: runtime
+        path: addons/dify/runtime
+        fields:
+          secretKey:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+          redisPassword:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+          sandboxApiKey:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+          pluginDaemonKey:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+          difyAgentApiToken:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+          difyAgentServerSecretKey:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+          difyAgentSandboxAuthToken:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+      - id: admin
+        path: addons/dify/admin
+        fields:
+          initPassword:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+      - id: gateway-key
+        path: addons/dify/gateway/key
+        fields:
+          agentgatewayApiKey:
+            generate: {encoding: base64url, bytes: 32}
+            validation: {format: base64url, minLength: 43, maxLength: 43}
+      - id: gateway-verifiers
+        path: addons/dify/gateway/verifiers
+        fields:
+          difyAgentgatewayPrimaryVerifierSha256:
+            sha256: {record: gateway-key, field: agentgatewayApiKey}
+            validation: {format: sha256, minLength: 64, maxLength: 64}
+          difyAgentgatewaySecondaryVerifierSha256:
+            literal: ""
+            validation: {format: sha256, minLength: 0, maxLength: 64}
+    readers:
+      - role: addon-dify-runtime
+        namespace: frontend-dify
+        serviceAccount: frontend-dify-external-secrets
+        audience: openbao
+        records: [database, browser, runtime, admin, gateway-key]
+      - role: infra-postgres-operations
+        namespace: infra-postgres-operations
+        serviceAccount: infra-postgres-operations-external-secrets
+        audience: openbao
+        records: [database]
+      - role: auth-keycloak
+        namespace: auth-keycloak
+        serviceAccount: auth-keycloak-external-secrets
+        audience: openbao
+        records: [browser, service]
+      - role: auth-keycloak-api-key-bridge
+        namespace: auth-keycloak-api-key-bridge
+        serviceAccount: auth-keycloak-api-key-bridge-external-secrets
+        audience: openbao
+        records: [gateway-verifiers]
+    deliveries:
+      - {namespace: frontend-dify, name: frontend-dify-runtime-secret, secretStore: frontend-dify-openbao-secret-store, targetSecret: frontend-dify-secret, records: [runtime, database]}
+      - {namespace: frontend-dify, name: frontend-dify-openbao-secret, secretStore: frontend-dify-openbao-secret-store, targetSecret: frontend-dify-openbao-secret, records: [browser, admin, gateway-key]}
+      - {namespace: infra-postgres-operations, name: frontend-dify-postgres-password, secretStore: infra-postgres-operations-openbao-secret-store, targetSecret: frontend-dify-postgres-password, records: [database]}
+      - {namespace: auth-keycloak, name: dify-oidc-secret, secretStore: auth-keycloak-openbao-secret-store, targetSecret: dify-oidc-secret, records: [browser, service]}
+      - {namespace: auth-keycloak-api-key-bridge, name: dify-managed-key-verifiers, secretStore: auth-keycloak-api-key-bridge-openbao-secret-store, targetSecret: dify-managed-key-verifiers, records: [gateway-verifiers]}
+    invariants:
+      - kind: accepted-verifier-slots
+        source: {record: gateway-key, field: agentgatewayApiKey}
+        primary: {record: gateway-verifiers, field: difyAgentgatewayPrimaryVerifierSha256}
+        secondary: {record: gateway-verifiers, field: difyAgentgatewaySecondaryVerifierSha256}
+    handover:
+      - id: administrator
+        label: Dify break-glass administrator
+        value: {record: admin, field: initPassword}
+    lifecycle:
+      delivery:
+        - {kind: SecretStore, namespace: frontend-dify, name: frontend-dify-openbao-secret-store}
+        - {kind: SecretStore, namespace: auth-keycloak, name: auth-keycloak-openbao-secret-store}
+        - {kind: SecretStore, namespace: infra-postgres-operations, name: infra-postgres-operations-openbao-secret-store}
+        - {kind: SecretStore, namespace: auth-keycloak-api-key-bridge, name: auth-keycloak-api-key-bridge-openbao-secret-store}
+        - {kind: ExternalSecret, namespace: frontend-dify, name: frontend-dify-runtime-secret}
+        - {kind: ExternalSecret, namespace: frontend-dify, name: frontend-dify-openbao-secret}
+        - {kind: ExternalSecret, namespace: infra-postgres-operations, name: frontend-dify-postgres-password}
+        - {kind: ExternalSecret, namespace: auth-keycloak, name: dify-oidc-secret}
+        - {kind: ExternalSecret, namespace: auth-keycloak-api-key-bridge, name: dify-managed-key-verifiers}
+      provision:
+        - {kind: HelmRelease, namespace: frontend-dify, name: frontend-dify-shared}
+        - {kind: HelmRelease, namespace: infra-postgres-operations, name: frontend-dify-postgres}
+        - {kind: HelmRelease, namespace: auth-keycloak, name: keycloak-dify-access}
+        - {kind: HelmRelease, namespace: auth-keycloak, name: dify-oidc-settings}
+        - {kind: HelmRelease, namespace: auth-keycloak, name: keycloak-dify-oidc}
+        - {kind: HelmRelease, namespace: auth-keycloak, name: keycloak-dify-agentgateway-oidc}
+        - {kind: HelmRelease, namespace: auth-keycloak-api-key-bridge, name: dify-managed-keys}
+      restart:
+        - {kind: StatefulSet, namespace: frontend-dify, name: frontend-dify-redis-stateful-set}
+        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-plugin-daemon-deployment}
+        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-sandbox-deployment}
+        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-agent-backend-deployment}
+        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-agent-sandbox-deployment}
+        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-agent-proxy-deployment}
+        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-api-deployment}
+        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-worker-deployment}
+        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-beat-deployment}
+        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-websocket-deployment}
+        - {kind: Deployment, namespace: frontend-dify, name: frontend-dify-web-gui-deployment}
+      rotate: []

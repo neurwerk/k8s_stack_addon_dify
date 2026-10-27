@@ -1,0 +1,26 @@
+{{- if .Values.dify.enabled }}
+{{- $hostname := required "dify.hostname is required" .Values.dify.hostname -}}
+{{- $redirect := printf "https://%s/console/api/oauth/authorize/keycloak" $hostname -}}
+{{- $origin := printf "https://%s" $hostname -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dify-oidc-settings
+  namespace: {{ .Release.Namespace }}
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
+data:
+  values.yaml: |
+    enabled: true
+    authentication:
+      clientId: {{ .Values.authKeycloak.difyClientId | quote }}
+      redirectUris: [{{ $redirect | quote }}]
+      webOrigins: [{{ $origin | quote }}]
+      realmRoles: [dify-user, dify-admin]
+      roleClaim: realm_access.roles
+      audiences: [dify]
+      refreshTokenRotation: true
+      mode: login-only
+      userTokenForwarding: false
+      gatewayPermissions: []
+{{- end }}

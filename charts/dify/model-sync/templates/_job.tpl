@@ -21,6 +21,7 @@ spec:
         runAsNonRoot: true
         runAsUser: 1001
         runAsGroup: 1001
+        fsGroup: 65532
         seccompProfile: {type: RuntimeDefault}
       affinity:
         podAffinity:
@@ -30,12 +31,29 @@ spec:
                   app.kubernetes.io/name: api
                   app.kubernetes.io/instance: frontend-dify-api
               topologyKey: kubernetes.io/hostname
+      initContainers:
+        - name: export-model-sync
+          image: {{ .Values.frontendDify.modelSync.toolingImage | quote }}
+          command: [dify-stage-payloads]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            seccompProfile: {type: RuntimeDefault}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 128Mi}
+          volumeMounts:
+            - {name: payload, mountPath: /work/payloads}
       containers:
         - name: model-sync
           image: {{ .Values.frontendDify.apiImage | quote }}
           imagePullPolicy: {{ .Values.frontendDify.pullPolicy }}
           workingDir: /app/api
-          command: [python, -B, /etc/dify-model-sync/sync_models.py]
+          command: [python, -B, /work/payloads/sync_models.py]
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: {drop: [ALL]}
@@ -78,9 +96,12 @@ spec:
               valueFrom:
                 secretKeyRef: {name: frontend-dify-openbao-secret, key: AGENTGATEWAY_API_KEY}
           volumeMounts:
+            - {name: payload, mountPath: /work/payloads, readOnly: true}
             - {name: support, mountPath: /etc/dify-model-sync, readOnly: true}
             - {name: storage, mountPath: /app/api/storage, subPath: storage, readOnly: true}
       volumes:
+        - name: payload
+          emptyDir: {}
         - name: support
           configMap: {name: frontend-dify-model-sync}
         - name: storage

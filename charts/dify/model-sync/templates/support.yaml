@@ -24,7 +24,5 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   projection.json: {{ .Values.frontendDify.modelSync.projection | toJson | quote }}
-  sync_models.py: |
-{{ .Files.Get "files/sync_models.py" | indent 4 }}
   job-template.json: {{ include "dify-model-sync.job" . | fromYaml | toJson | quote }}
 {{- end }}

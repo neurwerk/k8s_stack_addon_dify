@@ -30,7 +30,7 @@ spec:
       auth:
         kubernetes:
           mountPath: kubernetes
-          role: frontend-dify
+          role: addon-dify-runtime
           serviceAccountRef:
             name: frontend-dify-external-secrets
             audiences:
@@ -51,58 +51,71 @@ spec:
     name: frontend-dify-openbao-secret-store
     kind: SecretStore
   target:
-    name: frontend-dify-runtime-secret
+    name: frontend-dify-secret
     creationPolicy: Owner
     deletionPolicy: Retain
     template:
       engineVersion: v2
+      mergePolicy: Replace
       type: Opaque
       metadata:
         labels:
           reconcile.fluxcd.io/watch: Enabled
+          app.kubernetes.io/name: shared
+          app.kubernetes.io/instance: frontend-dify-shared
+          app.kubernetes.io/part-of: frontend-dify
+      templateFrom:
+        - target: Data
+          configMap:
+            name: frontend-dify-secret-template
+            items:
+              - key: KEYCLOAK_OIDC_ISSUER_URL
+                templateAs: Values
+              - key: KEYCLOAK_OIDC_CLIENT_ID
+                templateAs: Values
+              - key: LLM_PROXY_ENDPOINT
+                templateAs: Values
       data:
-        values.yaml: |
-          difySecrets:
-            SECRET_KEY: {{ .secretKey | quote }}
-            POSTGRES_PASSWORD: {{ .postgresPassword | quote }}
-            REDIS_PASSWORD: {{ .redisPassword | quote }}
-            SANDBOX_API_KEY: {{ .sandboxApiKey | quote }}
-            PLUGIN_DAEMON_KEY: {{ .pluginDaemonKey | quote }}
-            DIFY_AGENT_API_TOKEN: {{ .difyAgentApiToken | quote }}
-            DIFY_AGENT_SERVER_SECRET_KEY: {{ .difyAgentServerSecretKey | quote }}
-            DIFY_AGENT_SANDBOX_AUTH_TOKEN: {{ .difyAgentSandboxAuthToken | quote }}
+        SECRET_KEY: "{{ .secretKey }}"
+        DB_PASSWORD: "{{ .postgresPassword }}"
+        REDIS_PASSWORD: "{{ .redisPassword }}"
+        SANDBOX_API_KEY: "{{ .sandboxApiKey }}"
+        PLUGIN_DAEMON_KEY: "{{ .pluginDaemonKey }}"
+        DIFY_AGENT_API_TOKEN: "{{ .difyAgentApiToken }}"
+        DIFY_AGENT_SERVER_SECRET_KEY: "{{ .difyAgentServerSecretKey }}"
+        DIFY_AGENT_SANDBOX_AUTH_TOKEN: "{{ .difyAgentSandboxAuthToken }}"
   data:
     - secretKey: secretKey
       remoteRef:
-        key: frontend-dify/internal
+        key: addons/dify/runtime
         property: secretKey
     - secretKey: postgresPassword
       remoteRef:
-        key: frontend-dify/internal
+        key: addons/dify/database
         property: postgresPassword
     - secretKey: redisPassword
       remoteRef:
-        key: frontend-dify/internal
+        key: addons/dify/runtime
         property: redisPassword
     - secretKey: sandboxApiKey
       remoteRef:
-        key: frontend-dify/internal
+        key: addons/dify/runtime
         property: sandboxApiKey
     - secretKey: pluginDaemonKey
       remoteRef:
-        key: frontend-dify/internal
+        key: addons/dify/runtime
         property: pluginDaemonKey
     - secretKey: difyAgentApiToken
       remoteRef:
-        key: frontend-dify/internal
+        key: addons/dify/runtime
         property: difyAgentApiToken
     - secretKey: difyAgentServerSecretKey
       remoteRef:
-        key: frontend-dify/internal
+        key: addons/dify/runtime
         property: difyAgentServerSecretKey
     - secretKey: difyAgentSandboxAuthToken
       remoteRef:
-        key: frontend-dify/internal
+        key: addons/dify/runtime
         property: difyAgentSandboxAuthToken
 ---
 apiVersion: external-secrets.io/v1
@@ -131,13 +144,13 @@ spec:
   data:
     - secretKey: KEYCLOAK_OIDC_CLIENT_SECRET
       remoteRef:
-        key: frontend-dify/internal
-        property: keycloakOidcClientSecret
+        key: addons/dify/oidc/browser
+        property: difyOidcClientSecret
     - secretKey: AUTO_SETUP_ADMIN_PASSWORD
       remoteRef:
-        key: frontend-dify/internal
+        key: addons/dify/admin
         property: initPassword
     - secretKey: AGENTGATEWAY_API_KEY
       remoteRef:
-        key: frontend-dify/internal
+        key: addons/dify/gateway/key
         property: agentgatewayApiKey

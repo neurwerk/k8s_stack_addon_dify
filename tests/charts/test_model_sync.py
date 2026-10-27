@@ -10,6 +10,7 @@ import sys
 import unittest
 import zipfile
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -17,7 +18,11 @@ import yaml
 
 from test_endpoints import ROOT, render
 
-SCRIPT = ROOT / "charts/dify/model-sync/files/sync_models.py"
+SCRIPT = Path(
+    os.environ.get(
+        "DIFY_MODEL_SYNC_TEST_PAYLOAD", ROOT / "tooling/src/dify_tooling/payloads/sync_models.py"
+    )
+)
 spec = importlib.util.spec_from_file_location("sync_models", SCRIPT)
 sync = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sync)
@@ -447,12 +452,24 @@ class ModelSyncTests(unittest.TestCase):
             {r["kind"] for r in resources}, {"ConfigMap", "ServiceAccount", "NetworkPolicy"}
         )
         support = next(r for r in resources if r["kind"] == "ConfigMap")
-        self.assertEqual(
-            set(support["data"]), {"projection.json", "sync_models.py", "job-template.json"}
-        )
+        self.assertEqual(set(support["data"]), {"projection.json", "job-template.json"})
         job = json.loads(support["data"]["job-template.json"])
         self.assertFalse(job["spec"]["template"]["spec"]["automountServiceAccountToken"])
         container = job["spec"]["template"]["spec"]["containers"][0]
+        staging = job["spec"]["template"]["spec"]["initContainers"][0]
+        manifest = yaml.safe_load((ROOT / "release/manifest.yaml").read_text())
+        artifacts = {item["id"]: item["image"] for item in manifest["spec"]["artifacts"]}
+        self.assertEqual(staging["image"], artifacts["tooling"])
+        self.assertEqual(container["image"], artifacts["api"])
+        self.assertEqual(staging["command"], ["dify-stage-payloads"])
+        self.assertNotIn("env", staging)
+        self.assertNotIn("envFrom", staging)
+        self.assertEqual(staging["securityContext"]["runAsUser"], 65532)
+        self.assertEqual(container["command"], ["python", "-B", "/work/payloads/sync_models.py"])
+        self.assertIn(
+            {"name": "payload", "mountPath": "/work/payloads", "readOnly": True},
+            container["volumeMounts"],
+        )
         self.assertNotIn("envFrom", container)
         self.assertEqual(
             {

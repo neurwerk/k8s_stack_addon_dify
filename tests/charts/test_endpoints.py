@@ -50,7 +50,7 @@ class EndpointTests(unittest.TestCase):
                         "https://chat.example.test/console/api/oauth/authorize/keycloak",
                         result.stdout,
                     )
-                    self.assertIn("upsert-scoped-oidc-client", result.stdout)
+                    self.assertIn("kind: ConfigMap", result.stdout)
                     self.assertIn("realm_access.roles", result.stdout)
 
     def test_invalid_or_competing_hostname_is_rejected(self):

@@ -28,7 +28,7 @@ spec:
       containers:
         - name: init
           image: {{ (.Values.k8sTools).image | quote }}
-          command: ["upsert-oidc-client"]
+          command: ["upsert-scoped-service-client"]
           env:
             - name: KC_INTERNAL_URL
               value: "http://auth-keycloak-keycloak-service.auth-keycloak.svc.cluster.local"
@@ -48,16 +48,10 @@ spec:
                 secretKeyRef:
                   name: dify-oidc-secret
                   key: difyAgentgatewayClientSecret
-            - name: KC_REDIRECT_URI
-              value: ""
-            - name: KC_WEB_ORIGIN
-              value: ""
-            - name: KC_STANDARD_FLOW_ENABLED
-              value: "false"
-            - name: KC_DIRECT_ACCESS_GRANTS_ENABLED
-              value: "false"
-            - name: KC_SERVICE_ACCOUNTS_ENABLED
-              value: "true"
+            - name: KC_CLIENT_APPROVAL
+              value: {{ required "client-owned serviceApproval is required" .Values.serviceApproval | toJson | quote }}
+            - name: KC_CLIENT_AUDIENCES
+              value: '["agentgateway"]'
             {{- $roles := .Values.authKeycloak.difyAgentgatewayClientRoles | default list }}
             {{- if (.Values.frontendDify.modelSync | default dict).enabled }}
             {{- if ne (toJson ($roles | sortAlpha)) (toJson (.Values.frontendDify.modelSync.projection.roles | sortAlpha)) }}{{ fail "Dify roles must match model-sync projection roles" }}{{ end }}
@@ -65,14 +59,11 @@ spec:
             {{- $allRoles := include "keycloak-dify-agentgateway.effectiveRoles" . | fromYamlArray }}
             {{- if not (has "llm:invoke" $roles) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must include llm:invoke" }}{{- end }}
             {{- if ne (len $roles) (len ($roles | uniq)) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must not contain duplicates" }}{{- end }}
-            {{- $agentgatewayClientId := required "authKeycloak.agentgatewayClientId is required" .Values.authKeycloak.agentgatewayClientId }}
-            {{- $serviceRoles := list }}
             {{- range ($roles | sortAlpha) }}
             {{- if not (regexMatch "^(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z0-9][a-z0-9-]{0,47}:company-use)$" .) }}{{- fail (printf "invalid Dify AgentGateway role %q" .) }}{{- end }}
             {{- if not (has . $allRoles) }}{{- fail (printf "Dify AgentGateway role %q is absent from authKeycloak.agentgatewayClientRoles" .) }}{{- end }}
-            {{- $serviceRoles = append $serviceRoles (dict "clientId" $agentgatewayClientId "roleName" .) }}
             {{- end }}
-            - name: KC_SERVICE_ACCOUNT_ROLES
-              value: {{ $serviceRoles | toJson | quote }}
+            - name: KC_GATEWAY_ROLE_SCOPE
+              value: {{ $roles | sortAlpha | toJson | quote }}
             - name: KC_LOG_PREFIX
               value: "keycloak-dify-agentgateway-oidc"

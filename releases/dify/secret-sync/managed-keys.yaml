@@ -15,9 +15,9 @@ spec:
   data:
     - secretKey: difyAgentgatewayPrimaryVerifierSha256
       remoteRef:
-        key: auth-keycloak-api-key-bridge/internal
+        key: addons/dify/gateway/verifiers
         property: difyAgentgatewayPrimaryVerifierSha256
     - secretKey: difyAgentgatewaySecondaryVerifierSha256
       remoteRef:
-        key: auth-keycloak-api-key-bridge/internal
+        key: addons/dify/gateway/verifiers
         property: difyAgentgatewaySecondaryVerifierSha256

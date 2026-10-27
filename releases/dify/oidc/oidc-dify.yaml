@@ -16,19 +16,21 @@ spec:
       name: RetryOnFailure
       retryInterval: 1m
   dependsOn:
+    - name: dify-oidc-settings
+      namespace: auth-keycloak
     - name: keycloak-dify-access
       namespace: auth-keycloak
   chart:
     spec:
-      chart: ./charts/dify/oidc
+      chart: ./charts/keycloak/addon-oidc
       sourceRef:
         kind: GitRepository
-        name: dify-addon
+        name: k8s-stack
         namespace: flux-system
       interval: 10m
   valuesFrom:
     - kind: ConfigMap
-      name: dify-oidc-defaults
+      name: dify-oidc-settings
       valuesKey: values.yaml
     - kind: ConfigMap
       name: auth-keycloak-app-defaults
@@ -39,3 +41,12 @@ spec:
     - kind: ConfigMap
       name: keycloak-product-values
       valuesKey: values.yaml
+    - kind: ConfigMap
+      name: dify-oidc-approval-values
+      valuesKey: values.yaml
+  values:
+    k8sTools:
+      image: ghcr.io/neurwerk/k8s-stack-tooling:0.14.0@sha256:a1db80f00e8579478382ecc34717af484cf75239008ae8dbe66b01632aa49305
+    clientSecret:
+      name: dify-oidc-secret
+      key: difyOidcClientSecret

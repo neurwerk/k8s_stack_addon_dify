@@ -1,0 +1,7 @@
+clientApproval:
+  clientId: dify
+  redirectUris: [https://dify.example.test/console/api/oauth/authorize/keycloak]
+  webOrigins: [https://dify.example.test]
+  realmRoles: [dify-user, dify-admin]
+  audiences: [dify]
+  gatewayPermissions: []

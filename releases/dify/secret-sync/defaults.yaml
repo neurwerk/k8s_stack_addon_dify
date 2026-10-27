@@ -1,4 +1,4 @@
-# Dify addon defaults; client values provide the real hostname and sizing overrides.
+# Dify addon defaults staged before credential delivery and application consumers.
 dify:
   enabled: false
   hostname: ""

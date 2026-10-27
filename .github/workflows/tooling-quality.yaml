@@ -1,0 +1,90 @@
+name: Dify Tooling Quality
+
+on:
+  workflow_call:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  # Reviewed candidate for source CI only; tag-driven publication requires stable Base.
+  BASE_REF: e5eca150c0f71d3f80b135c67f2451758a8f3db1
+
+jobs:
+  quality:
+    name: Dify Add-on Tooling
+    runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: "3.12"
+      BASE_REPO: ${{ github.workspace }}/.ci/base
+    defaults:
+      run:
+        working-directory: tooling
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Check out selected Base
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: neurwerk/k8s_stack_base
+          ref: ${{ startsWith(github.ref, 'refs/tags/') && 'v0.4.0' || env.BASE_REF }}
+          path: .ci/base
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+          version: "0.12.7"
+          cache-dependency-glob: tooling/uv.lock
+      - name: Install Python
+        run: uv python install 3.12
+      - name: Install Helm for the existing native boundary tests
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: v4.2.4
+      - name: Verify lockfile
+        run: uv lock --check
+      - name: Install Kustomize for composition
+        uses: supplypike/setup-bin@8e3f88b4f143d9b5c3497f0fc12d45c83c123787 # v4.0.1
+        with:
+          uri: https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz
+          name: kustomize
+          version: v5.8.1
+      - name: Install dependencies
+        run: uv sync --frozen --dev
+      - name: Lint
+        run: uv run --frozen ruff check .
+      - name: Check formatting
+        run: uv run --frozen ruff format --check .
+      - name: Type check
+        run: uv run --frozen ty check
+      - name: Test
+        run: uv run --frozen pytest
+      - name: Build
+        run: uv build
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Build operational image without publication
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: tooling
+          load: true
+          push: false
+          platforms: linux/amd64
+          tags: dify-tooling-quality:local
+      - name: Verify offline image export and non-root runtime
+        run: |
+          mkdir -p "$RUNNER_TEMP/dify-tooling-export"
+          chmod 777 "$RUNNER_TEMP/dify-tooling-export"
+          docker run --rm --network none --read-only --user 65532:65532 \
+            -v "$RUNNER_TEMP/dify-tooling-export:/work/payloads" \
+            dify-tooling-quality:local dify-stage-payloads
+          cmp "$RUNNER_TEMP/dify-tooling-export/sync_models.py" src/dify_tooling/payloads/sync_models.py
+          docker run --rm --network none dify-tooling-quality:local \
+            python -c 'import os; assert os.getuid() != 0'
+      - name: Run existing native boundary tests against the image-exported payload
+        env:
+          DIFY_MODEL_SYNC_TEST_PAYLOAD: ${{ runner.temp }}/dify-tooling-export/sync_models.py
+        run: uv run --frozen --project .. python -m unittest discover -s ../tests/charts -p test_model_sync.py
