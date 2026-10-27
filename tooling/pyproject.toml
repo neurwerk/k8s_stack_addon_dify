@@ -37,6 +37,9 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["dify_tooling"]
+
 [tool.ruff.lint.per-file-ignores]
 # Preserve the reviewed native payload byte-for-byte; its original lint gate remains in make check.
 "**/payloads/sync_models.py" = ["E501", "N", "I", "UP"]

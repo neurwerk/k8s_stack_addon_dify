@@ -6,10 +6,11 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from dify_tooling.cli import main
 from k8s_stack_tooling.addons import ContractError, check, load_manifest
 from openbao_stack_setup import client as client_module
 from openbao_stack_setup import declarative
+
+from dify_tooling.cli import main
 
 ROOT = Path(__file__).resolve().parents[2]
 

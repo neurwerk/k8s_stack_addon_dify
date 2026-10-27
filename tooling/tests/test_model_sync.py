@@ -10,12 +10,6 @@ from unittest.mock import Mock
 
 import pytest
 import yaml
-from dify_tooling.model_sync import launcher, main
-from dify_tooling.model_sync.projection import (
-    build_projection,
-    require_installed_projection,
-)
-from dify_tooling.payloads import sync_models as payload
 from k8s_stack_tooling.api.jobs import JobError
 from k8s_stack_tooling.gateway_catalog.catalog import GatewayCatalog
 from k8s_stack_tooling.gateway_catalog.metadata import (
@@ -32,6 +26,13 @@ from kubernetes.client.rest import ApiException
 from pydantic import ValidationError
 from urllib3.exceptions import HTTPError
 from urllib3.response import HTTPResponse
+
+from dify_tooling.model_sync import launcher, main
+from dify_tooling.model_sync.projection import (
+    build_projection,
+    require_installed_projection,
+)
+from dify_tooling.payloads import sync_models as payload
 
 NS = SimpleNamespace
 
