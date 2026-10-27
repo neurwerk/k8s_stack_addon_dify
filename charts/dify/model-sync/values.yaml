@@ -3,8 +3,8 @@ frontendDify:
   apiImage: ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f
   pullPolicy: IfNotPresent
   modelSync:
-    # Staged candidate only; replace with published tag+digest before installable validation.
-    toolingImage: ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.4
+    # Published tooling artifact; native API execution remains independently pinned.
+    toolingImage: ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.4@sha256:4820ebc6c61cb0825f9f06a03e055954ac4ff4320908a4815b46718a8f078675
     # No Job is created by Helm; the local operator CLI snapshots this support.
     enabled: false
     projection: {}
