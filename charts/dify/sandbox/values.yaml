@@ -2,7 +2,7 @@
 # Pulled directly from: docker.io/langgenius/dify-sandbox
 # Pinned here (chart defaults)
 frontendDify:
-  sandboxImage: docker.io/langgenius/dify-sandbox:0.2.15
+  sandboxImage: docker.io/langgenius/dify-sandbox:0.2.15@sha256:750e1111426ef31a9217b81c98cccfb750f17b182af3221102e420afa9f0928e
   pullPolicy: IfNotPresent
   sandbox:
     ports:
