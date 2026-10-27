@@ -4,7 +4,7 @@ metadata:
   name: dify
 spec:
   version: 0.1.4
-  status: staged
+  status: ready
   sourceName: dify-addon
   configurationKey: dify
   inputs:
