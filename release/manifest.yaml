@@ -96,7 +96,7 @@ spec:
       baseChart: charts/postgres/addon
       extensions: [vector]
   artifacts:
-    - {id: tooling, role: product, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.4@sha256:4820ebc6c61cb0825f9f06a03e055954ac4ff4320908a4815b46718a8f078675'}
+    - {id: tooling, role: product, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.5@sha256:f6af8c8d3f11205710e2741ca390e074ee7ce7f2aa35a545cf066c0080516af3'}
     - {id: api, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f'}
     - {id: web, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v1@sha256:05e5297b43855a8ea6b8ec2a1fe631567f8b25146075e9e9a8ece3abc3e638c9'}
     - {id: agent-backend, role: native, image: 'docker.io/langgenius/dify-agent-backend:1.17.1@sha256:a30c039bbead65d7fd8baf8c53fc867373f515c5721e46070ce03ed04c5f1e32'}
