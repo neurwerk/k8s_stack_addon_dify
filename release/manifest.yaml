@@ -109,7 +109,7 @@ spec:
     - {id: database-provisioner, role: native, image: 'ghcr.io/documentdb/documentdb/documentdb-local:pg18-0.116.0@sha256:01bb9408393fb6417cc32735f4566dee4b53bbab6df6b70c42797317da631f12'}
     - {id: access-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.12.0@sha256:b70f0f93ca2c3e5cef9290af2db6480bec72cedc0289ecd232747996eb01091a'}
     - {id: browser-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.14.0@sha256:a1db80f00e8579478382ecc34717af484cf75239008ae8dbe66b01632aa49305'}
-    - {id: service-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.14.0@sha256:a1db80f00e8579478382ecc34717af484cf75239008ae8dbe66b01632aa49305'}
+    - {id: service-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.15.1@sha256:1fa3a0cd02c1410ab4b1dcb0aeb9b3e2a7704586c3c8a0d399c78b8639427205'}
   consumers:
     - {artifact: tooling, kind: Command, argv: [dify-validate, /work/addon]}
     - {artifact: tooling, kind: Command, argv: [dify-model-sync, launch, --help]}
