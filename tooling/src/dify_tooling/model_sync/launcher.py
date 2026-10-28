@@ -190,6 +190,12 @@ def launch(
                 uid=submitted.uid,
             )
         )
+        for failure in result.get("failures", []):
+            if failure["index"] > len(proposed["models"]):
+                result["status"] = "uncertain"
+                continue
+            # Names come from the verified projection, never from provider logs.
+            failure["model"] = proposed["models"][failure["index"] - 1]["public_id"]
     return result
 
 
@@ -215,11 +221,32 @@ def safe_summary(logs: str, *, mode: str) -> dict[str, Any]:
             continue
         if mode == "preview" and (counts["created"] or counts["updated"]):
             continue
+        failures = value.get("failures", [])
+        if not isinstance(failures, list) or len(failures) > 256:
+            continue
+        if any(
+            not isinstance(failure, dict)
+            or type(failure.get("index")) is not int
+            or not 1 <= failure["index"] <= 256
+            or type(failure.get("status_code")) is not int
+            or failure["status_code"] not in {400, 404, 422, 429, 500, 502, 503, 504}
+            or type(failure.get("attempts")) is not int
+            or not 1 <= failure["attempts"] <= 3
+            for failure in failures
+        ):
+            continue
+        if (mode == "preview" and failures) or len({f["index"] for f in failures}) != len(failures):
+            continue
         summary = {
             "mode": mode,
             "counts": {k: counts[k] for k in sorted(allowed)},
             "planned_counts": {k: planned_counts[k] for k in sorted(allowed)},
         }
+        if "failures" in value:
+            summary["failures"] = [
+                {key: failure[key] for key in ("index", "status_code", "attempts")}
+                for failure in failures
+            ]
     return summary
 
 

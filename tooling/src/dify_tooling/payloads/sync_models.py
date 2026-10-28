@@ -9,6 +9,7 @@ import re
 import sys
 import time
 from contextlib import contextmanager
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -28,6 +29,9 @@ LOCK_KEY = 0x44494659424F4F54
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
 MAX_DOCUMENT_BYTES = 1_048_576
 MAX_COMPANY_MODELS = 27
+RETRYABLE_VALIDATION_STATUSES = {429, 500, 502, 503, 504}
+MODEL_VALIDATION_STATUSES = {400, 404, 422} | RETRYABLE_VALIDATION_STATUSES
+MAX_VALIDATION_ATTEMPTS = 3
 BINDING_PATTERN = r"[a-z0-9](?:[-a-z0-9]{0,30}[a-z0-9])?"
 API_PATH_PATTERN = r"(?:/[a-z0-9][a-z0-9-]*)+"
 DIGEST_PATTERN = r"[a-f0-9]{64}"
@@ -370,11 +374,20 @@ def plan(model: dict, desired: dict | None, state: tuple) -> tuple[str, str | No
     return ("noop" if unchanged else "update"), credential.id
 
 
+class ModelValidationFailure(Exception):
+    """A recognized, pre-write provider rejection; never retain its response body."""
+
+    def __init__(self, status_code):
+        super().__init__("model credential validation failed")
+        self.status_code = status_code
+
+
 def empty_result(mode):
     return {
         "mode": mode,
         "counts": dict.fromkeys(("created", "updated", "unchanged", "skipped"), 0),
         "planned_counts": dict.fromkeys(("created", "updated", "unchanged", "skipped"), 0),
+        "failures": [],
     }
 
 
@@ -382,6 +395,7 @@ def synchronize(projection, backend, mode, api_key, report):
     result = empty_result(mode)
     plans = []
     reasons = {}
+    validation_started = False
     try:
         require(mode in {"preview", "apply"}, "invalid sync mode")
         # Classify the complete intent before any native operation. This remains
@@ -408,29 +422,52 @@ def synchronize(projection, backend, mode, api_key, report):
             report({"action": action, "index": index})
             if mode == "preview" or category in {"unchanged", "skipped"}:
                 continue
-            require(
-                datetime.now(timezone.utc)
-                < timestamp(model["metadata"]["provenance"]["valid_until"]),
-                "metadata expired during sync",
-            )
-            # Recheck ownership immediately before validation, including active
-            # selection: native updates also propagate load-balancing secrets.
-            require(
-                plan(model, desired, backend.read(model)) == (action, credential_id),
-                "model state changed during sync",
-            )
             kwargs = dict(
                 model=model["public_id"],
                 credentials=desired,
                 credential_name=credential_name(model),
             )
-            if action == "create":
-                backend.create(**kwargs)
-            elif action in {"update", "recover_update"}:
-                backend.update(**kwargs, credential_id=credential_id)
-            if action in {"recover", "recover_update"}:
-                backend.attach(model["public_id"], credential_id)
-            result["counts"][category] += 1
+            validates = action in {"create", "update", "recover_update"}
+            delay = 1 if validates and validation_started else 0
+            for attempt in range(1, MAX_VALIDATION_ATTEMPTS + 1):
+                if delay:
+                    time.sleep(delay)
+                require(
+                    datetime.now(timezone.utc)
+                    < timestamp(model["metadata"]["provenance"]["valid_until"]),
+                    "metadata expired during sync",
+                )
+                # Recheck after every wait, before validation or any native write.
+                require(
+                    plan(model, desired, backend.read(model)) == (action, credential_id),
+                    "model state changed during sync",
+                )
+                validation_started = validation_started or validates
+                try:
+                    # Native validation/encryption may mutate the supplied credentials.
+                    if action == "create":
+                        backend.create(**deepcopy(kwargs))
+                    elif action in {"update", "recover_update"}:
+                        backend.update(**deepcopy(kwargs), credential_id=credential_id)
+                except ModelValidationFailure as exc:
+                    if (
+                        exc.status_code in RETRYABLE_VALIDATION_STATUSES
+                        and attempt < MAX_VALIDATION_ATTEMPTS
+                    ):
+                        delay = 2**attempt
+                        report({"action": "retry", "index": index, "attempt": attempt})
+                        continue
+                    result["failures"].append(
+                        {"index": index, "status_code": exc.status_code, "attempts": attempt}
+                    )
+                    break
+                # Attachment, DB, encryption and post-commit failures are never retried.
+                if action in {"recover", "recover_update"}:
+                    backend.attach(model["public_id"], credential_id)
+                result["counts"][category] += 1
+                break
+        if result["failures"]:
+            raise RuntimeError("some model credentials could not be synchronized")
         report({**result, "status": "complete", "reasons": reasons})
     except Exception:
         report({**result, "status": "failed", "reasons": reasons})
@@ -552,14 +589,26 @@ class NativeBackend:
         )
 
     def create(self, **kwargs):
-        self.service.create_model_credential(
-            tenant_id=self.tenant_id, provider=PROVIDER, model_type="llm", **kwargs
-        )
+        self._save(self.service.create_model_credential, **kwargs)
 
     def update(self, **kwargs):
-        self.service.update_model_credential(
-            tenant_id=self.tenant_id, provider=PROVIDER, model_type="llm", **kwargs
-        )
+        self._save(self.service.update_model_credential, **kwargs)
+
+    def _save(self, operation, **kwargs):
+        from graphon.model_runtime.errors.validate import CredentialsValidateFailedError
+
+        try:
+            operation(tenant_id=self.tenant_id, provider=PROVIDER, model_type="llm", **kwargs)
+        except CredentialsValidateFailedError as exc:
+            # Pinned plugin 0.0.56 exposes only status and body, not Retry-After.
+            # Authentication, unknown statuses and unrecognized messages stay fatal.
+            match = re.match(
+                r"\ACredentials validation failed with status code ([0-9]{3}) and response body ",
+                str(exc),
+            )
+            if match and int(match[1]) in MODEL_VALIDATION_STATUSES:
+                raise ModelValidationFailure(int(match[1])) from None
+            raise
 
     def attach(self, model, credential_id):
         self.service.add_model_credential_to_model_list(

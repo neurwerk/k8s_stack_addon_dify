@@ -12,7 +12,7 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import yaml
 
@@ -124,12 +124,16 @@ class ModelSyncTests(unittest.TestCase):
         self.projection = projection()
         self.backend = Backend()
         self.reports = []
+        sleeper = patch.object(sync.time, "sleep")
+        self.sleep = sleeper.start()
+        self.addCleanup(sleeper.stop)
 
     def run_sync(self, mode="apply"):
         sync.synchronize(self.projection, self.backend, mode, "test-secret", self.reports.append)
 
     def test_preview_is_read_only_then_second_apply_does_not_validate(self):
         self.run_sync("preview")
+        self.sleep.assert_not_called()
         self.assertEqual(self.backend.validations, 0)
         self.assertEqual(self.backend.records, [])
         self.assertEqual(self.reports[-1]["counts"], counts())
@@ -180,6 +184,154 @@ class ModelSyncTests(unittest.TestCase):
         self.assertEqual(result["planned_counts"], counts(created=2))
         self.assertEqual(result["status"], "failed")
         self.assertNotIn("sensitive", json.dumps(result))
+
+    def multiple_models(self):
+        first = self.projection["models"][0]
+        second = copy.deepcopy(first)
+        second["public_id"] = second["metadata"]["public_id"] = "example/second"
+        self.projection["models"].append(second)
+        states = {m["public_id"]: Backend() for m in self.projection["models"]}
+        backend = SimpleNamespace(
+            read=lambda model: states[model["public_id"]].read(model),
+            create=lambda **kwargs: states[kwargs["model"]].create(**kwargs),
+            update=lambda **kwargs: states[kwargs["model"]].update(**kwargs),
+        )
+        self.backend = backend
+        return states
+
+    def test_rate_limited_model_does_not_block_later_model_and_rerun_converges(self):
+        states = self.multiple_models()
+        first = states["example/model"]
+        with patch.object(first, "create", side_effect=sync.ModelValidationFailure(429)) as create:
+            with self.assertRaisesRegex(RuntimeError, "some model credentials"):
+                self.run_sync()
+            self.assertEqual(create.call_count, 3)
+        self.assertEqual(first.credentials, [])
+        self.assertEqual(states["example/second"].validations, 1)
+        self.assertEqual(self.reports[-1]["counts"], counts(created=1))
+        self.assertEqual(self.reports[-1]["planned_counts"], counts(created=2))
+        self.assertEqual(
+            self.reports[-1]["failures"], [{"index": 1, "status_code": 429, "attempts": 3}]
+        )
+        self.assertEqual([c.args[0] for c in self.sleep.call_args_list], [2, 4, 1])
+        self.run_sync()
+        self.assertEqual(self.reports[-1]["counts"], counts(created=1, unchanged=1))
+        self.assertEqual(self.reports[-1]["failures"], [])
+        self.assertEqual(states["example/second"].validations, 1)
+
+    def test_transient_validation_retries_without_mutating_desired_credentials(self):
+        for status in (429, 500, 502, 503, 504):
+            with self.subTest(status=status):
+                self.backend = Backend()
+                original = self.backend.create
+                attempts = []
+
+                def create(**kwargs):
+                    self.assertEqual(kwargs["credentials"]["api_key"], "test-secret")
+                    attempts.append(1)
+                    if len(attempts) < 3:
+                        kwargs["credentials"]["api_key"] = "mutated"
+                        raise sync.ModelValidationFailure(status)
+                    original(**kwargs)
+
+                with patch.object(self.backend, "create", side_effect=create):
+                    self.run_sync()
+                self.assertEqual(len(attempts), 3)
+                self.assertEqual(self.backend.validations, 1)
+                self.assertEqual(self.reports[-1]["status"], "complete")
+                self.assertEqual(self.reports[-1]["counts"], counts(created=1))
+
+    def test_model_rejections_continue_without_retry(self):
+        for status in (400, 404, 422):
+            with self.subTest(status=status):
+                self.projection = projection()
+                states = self.multiple_models()
+                with patch.object(
+                    states["example/model"],
+                    "create",
+                    side_effect=sync.ModelValidationFailure(status),
+                ) as create:
+                    with self.assertRaises(RuntimeError):
+                        self.run_sync()
+                create.assert_called_once()
+                self.assertEqual(states["example/second"].validations, 1)
+                self.assertEqual(self.reports[-1]["failures"][0]["attempts"], 1)
+
+    def test_fatal_native_failure_stops_later_models_without_retry(self):
+        states = self.multiple_models()
+        with patch.object(
+            states["example/model"], "create", side_effect=RuntimeError("private database error")
+        ) as create:
+            with self.assertRaises(RuntimeError):
+                self.run_sync()
+        create.assert_called_once()
+        self.sleep.assert_not_called()
+        self.assertEqual(states["example/second"].validations, 0)
+        self.assertNotIn("private", json.dumps(self.reports))
+
+    def test_retry_rechecks_expiry_and_ownership_after_backoff(self):
+        for mutation in ("expiry", "ownership"):
+            with self.subTest(mutation=mutation):
+                self.projection = projection()
+                self.backend = Backend()
+
+                def mutate(_delay):
+                    if mutation == "expiry":
+                        self.projection["models"][0]["metadata"]["provenance"]["valid_until"] = (
+                            "2000-01-01T00:00:00Z"
+                        )
+                    else:
+                        self.backend.records.append(SimpleNamespace(credential_id="user"))
+
+                with (
+                    patch.object(sync.time, "sleep", side_effect=mutate),
+                    patch.object(
+                        self.backend, "create", side_effect=sync.ModelValidationFailure(429)
+                    ) as create,
+                    self.assertRaises(ValueError),
+                ):
+                    self.run_sync()
+                create.assert_called_once()
+
+    def test_native_boundary_only_classifies_recognized_prewrite_validation_errors(self):
+        class CredentialsValidateFailedError(Exception):
+            pass
+
+        native = sync.NativeBackend.__new__(sync.NativeBackend)
+        native.tenant_id = "tenant"
+        module = SimpleNamespace(CredentialsValidateFailedError=CredentialsValidateFailedError)
+        with patch.dict(sys.modules, {"graphon.model_runtime.errors.validate": module}):
+            for status in (400, 404, 422, 429, 500, 502, 503, 504):
+                message = (
+                    f"Credentials validation failed with status code {status} "
+                    "and response body private-key-and-prompt"
+                )
+                operation = Mock(side_effect=CredentialsValidateFailedError(message))
+                with self.assertRaises(sync.ModelValidationFailure) as raised:
+                    native._save(operation)
+                self.assertEqual(raised.exception.status_code, status)
+                self.assertNotIn("private", str(raised.exception))
+                operation.assert_called_once()
+            for error in (
+                CredentialsValidateFailedError(
+                    "Credentials validation failed with status code 401 and response body private"
+                ),
+                CredentialsValidateFailedError(
+                    "Credentials validation failed with status code 403 and response body private"
+                ),
+                CredentialsValidateFailedError(
+                    "Credentials validation failed with status code 409 and response body private"
+                ),
+                CredentialsValidateFailedError("unrecognized private error"),
+                CredentialsValidateFailedError(
+                    "prefix Credentials validation failed with status code 429 and response body x"
+                ),
+                ValueError(
+                    "Credentials validation failed with status code 429 and response body private"
+                ),
+            ):
+                with self.subTest(error=type(error)), self.assertRaises(type(error)):
+                    native._save(Mock(side_effect=error))
 
     def test_base_binding_provider_and_safe_integer_boundaries(self):
         value = self.projection

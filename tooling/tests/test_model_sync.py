@@ -493,6 +493,42 @@ def test_result_keeps_last_valid_summary_including_plans():
     assert launcher.safe_summary(logs, mode="apply") == last
 
 
+def test_result_reports_only_safe_model_failure_details():
+    failure = {"index": 15, "status_code": 429, "attempts": 3}
+    summary = {**helper_summary(), "failures": [failure]}
+    noisy = {**summary, "failures": [{**failure, "response_body": "private key and prompt"}]}
+    assert launcher.safe_summary(json.dumps(noisy), mode="apply") == summary
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        {"index": True, "status_code": 429, "attempts": 3},
+        {"index": 0, "status_code": 429, "attempts": 3},
+        {"index": 257, "status_code": 429, "attempts": 3},
+        {"index": 1, "status_code": "private", "attempts": 3},
+        {"index": 1, "status_code": 401, "attempts": 3},
+        {"index": 1, "status_code": 429, "attempts": 4},
+        {"index": 1, "status_code": 429, "attempts": True},
+    ],
+)
+def test_result_rejects_malformed_model_failure_details(failure):
+    valid = helper_summary()
+    malformed = {**valid, "failures": [failure]}
+    assert launcher.safe_summary(json.dumps(malformed), mode="apply") == {}
+    logs = json.dumps(valid) + "\n" + json.dumps(malformed)
+    assert launcher.safe_summary(logs, mode="apply") == valid
+
+
+def test_result_rejects_duplicate_oversized_and_preview_failures():
+    failure = {"index": 1, "status_code": 429, "attempts": 3}
+    for failures in ([failure, failure], [failure] * 257, "private error"):
+        summary = {**helper_summary(), "failures": failures}
+        assert launcher.safe_summary(json.dumps(summary), mode="apply") == {}
+    summary = {**helper_summary("preview"), "failures": [failure]}
+    assert launcher.safe_summary(json.dumps(summary), mode="preview") == {}
+
+
 def test_uncertain_job_creation_is_named_and_not_retried():
     projection, maps = cluster_inputs()
     core, batch = Mock(), Mock()
@@ -511,6 +547,29 @@ def test_uncertain_job_creation_is_named_and_not_retried():
     assert result["status"] == "uncertain" and result["phase"] == "job"
     assert result["job"].startswith("frontend-dify-model-sync-")
     assert batch.create_namespaced_job.call_count == 1
+
+
+def test_launcher_identifies_failed_models_from_verified_projection(monkeypatch):
+    projection, maps = cluster_inputs()
+    core, batch = Mock(), Mock()
+    core.read_namespaced_config_map.side_effect = maps + maps
+    batch.create_namespaced_job.return_value = NS(metadata=NS(uid="run-uid"))
+    failure = {"index": 1, "status_code": 429, "attempts": 3}
+    monkeypatch.setattr(
+        launcher, "wait_result", lambda *a, **kw: {"status": "failed", "failures": [failure]}
+    )
+    result = launcher.launch(
+        core,
+        batch,
+        catalog_namespace="catalog",
+        namespace="dify",
+        mode="apply",
+        expected=projection["projection_revision"],
+        max_company=27,
+        wait_seconds=1,
+    )
+    assert result["status"] == "failed"
+    assert result["failures"][0]["model"] == projection["models"][0]["public_id"]
 
 
 @pytest.mark.parametrize(
