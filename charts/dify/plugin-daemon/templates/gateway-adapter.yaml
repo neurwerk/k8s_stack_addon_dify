@@ -1,3 +1,11 @@
+{{- $bootstrapPath := printf "/bindings/%s" .Values.frontendDify.agentGateway.bindingId }}
+{{- if (.Values.frontendDify.modelSync | default dict).enabled }}
+{{- range .Values.frontendDify.modelSync.projection.bindings }}
+{{- if eq .id $.Values.frontendDify.agentGateway.bindingId }}
+{{- $bootstrapPath = .api_path }}
+{{- end }}
+{{- end }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -40,7 +48,7 @@ data:
           proxy_read_timeout 600s;
           proxy_send_timeout 600s;
           proxy_next_upstream off;
-          proxy_pass http://infra-agentgateway-gateway.infra-agentgateway.svc.cluster.local:8082/bindings/{{ .Values.frontendDify.agentGateway.bindingId }}/v1/chat/completions;
+          proxy_pass http://infra-agentgateway-gateway.infra-agentgateway.svc.cluster.local:8082{{ $bootstrapPath }}/v1/chat/completions;
         }
         {{- if (.Values.frontendDify.modelSync | default dict).enabled }}
         {{- $ids := dict }}

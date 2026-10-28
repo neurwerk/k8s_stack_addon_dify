@@ -19,6 +19,12 @@ from test_endpoints import render
 
 class AdapterHTTPTests(unittest.TestCase):
     def test_exact_binding_routes_headers_and_path_rejection(self):
+        self.check_binding_routes(custom_bootstrap=False)
+
+    def test_bootstrap_uses_matching_projected_binding_path(self):
+        self.check_binding_routes(custom_bootstrap=True)
+
+    def check_binding_routes(self, *, custom_bootstrap):
         nginx = os.environ.get("DIFY_TEST_NGINX") or shutil.which("nginx") or "/usr/sbin/nginx"
         self.assertTrue(Path(nginx).is_file(), "Nginx is required for HTTP boundary checks")
         received = []
@@ -57,6 +63,12 @@ class AdapterHTTPTests(unittest.TestCase):
                 },
             }
         }
+        bootstrap_path = "/bindings/local"
+        if custom_bootstrap:
+            bootstrap_path = "/custom/local-chat"
+            values["frontendDify"]["modelSync"]["projection"]["bindings"].append(
+                {"id": "local", "api_path": bootstrap_path}
+            )
         result = render("plugin-daemon", values)
         self.assertEqual(result.returncode, 0, result.stderr)
         config = next(r for r in yaml.safe_load_all(result.stdout) if r["kind"] == "ConfigMap")[
@@ -111,7 +123,7 @@ class AdapterHTTPTests(unittest.TestCase):
                         connection.close()
 
                 for route, expected in (
-                    ("/v1/chat/completions", "/bindings/local/v1/chat/completions"),
+                    ("/v1/chat/completions", f"{bootstrap_path}/v1/chat/completions"),
                     (
                         "/bindings/company/v1/chat/completions",
                         "/custom/company-chat/v1/chat/completions",
@@ -127,6 +139,9 @@ class AdapterHTTPTests(unittest.TestCase):
                     self.assertEqual(headers.get("X-Neurwerk-Authorization"), "Bearer test-key")
                     for header in ("Authorization", "Proxy-Authorization", "Cookie"):
                         self.assertNotIn(header, headers)
+                if custom_bootstrap:
+                    self.assertEqual(request("/bindings/local/v1/chat/completions")[0], 200)
+                    self.assertEqual(received[-1][0], f"{bootstrap_path}/v1/chat/completions")
                 accepted = len(received)
                 for path in (
                     "http://unapproved.invalid/bindings/company/v1/chat/completions",
