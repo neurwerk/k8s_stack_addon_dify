@@ -9,7 +9,19 @@
       "if": {"properties": {"enabled": {"const": true}}},
       "then": {"properties": {"hostname": {"pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$"}}}
     },
-    "frontendDify": {"type": "object", "properties": {"hostname": false}},
+    "frontendDify": {
+      "type": "object",
+      "properties": {
+        "hostname": false,
+        "config": {
+          "type": "object",
+          "required": ["SERVER_WORKER_CONNECTIONS"],
+          "properties": {
+            "SERVER_WORKER_CONNECTIONS": {"type": "string", "pattern": "^[1-9][0-9]*$"}
+          }
+        }
+      }
+    },
     "authKeycloak": {"type": "object", "properties": {"difyRedirectUri": false, "difyWebOrigin": false}}
   }
 }

@@ -28,6 +28,8 @@ frontendDify:
     MODE: api
     LOG_LEVEL: WARNING
     SERVER_WORKER_AMOUNT: "2"
+    # Idle HTTP keep-alive connections also occupy gevent worker slots.
+    SERVER_WORKER_CONNECTIONS: "1000"
     STORAGE_TYPE: local
     STORAGE_LOCAL_PATH: /app/api/storage
     VECTOR_STORE: pgvector

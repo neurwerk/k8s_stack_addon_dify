@@ -140,6 +140,8 @@ spec:
               value: {{ .Values.frontendDify.config.LOG_LEVEL | quote }}
             - name: SERVER_WORKER_AMOUNT
               value: {{ .Values.frontendDify.config.SERVER_WORKER_AMOUNT | default "1" | quote }}
+            - name: SERVER_WORKER_CONNECTIONS
+              value: {{ .Values.frontendDify.config.SERVER_WORKER_CONNECTIONS | quote }}
             - name: CONSOLE_API_URL
               value: {{ printf "https://%s" .Values.dify.hostname | quote }}
             - name: CONSOLE_WEB_URL
