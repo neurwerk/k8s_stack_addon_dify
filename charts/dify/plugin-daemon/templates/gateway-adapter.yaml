@@ -40,6 +40,7 @@ data:
           proxy_http_version 1.1;
           proxy_set_header Connection "";
           proxy_set_header X-Neurwerk-Authorization $http_authorization;
+          proxy_set_header X-Neurwerk-Credential-Mode "";
           proxy_set_header Authorization "";
           proxy_set_header Proxy-Authorization "";
           proxy_set_header Cookie "";
@@ -64,6 +65,7 @@ data:
           proxy_http_version 1.1;
           proxy_set_header Connection "";
           proxy_set_header X-Neurwerk-Authorization $http_authorization;
+          proxy_set_header X-Neurwerk-Credential-Mode "";
           proxy_set_header Authorization "";
           proxy_set_header Proxy-Authorization "";
           proxy_set_header Cookie "";

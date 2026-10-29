@@ -103,20 +103,20 @@ class AdapterHTTPTests(unittest.TestCase):
                 else:
                     self.fail("Nginx did not start")
 
-                def request(path, method="POST", identity="Bearer test-key"):
+                def request(path, method="POST", identity="Bearer test-key", credential_headers=()):
                     connection = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
                     try:
-                        connection.request(
-                            method,
-                            path,
-                            body=b"{}",
-                            headers={
-                                "Authorization": identity,
-                                "X-Neurwerk-Authorization": "spoofed",
-                                "Proxy-Authorization": "private-proxy",
-                                "Cookie": "private-cookie",
-                            },
-                        )
+                        connection.putrequest(method, path)
+                        for name, value in (
+                            ("Authorization", identity),
+                            ("X-Neurwerk-Authorization", "spoofed"),
+                            ("Proxy-Authorization", "private-proxy"),
+                            ("Cookie", "private-cookie"),
+                            ("Content-Length", "2"),
+                            *credential_headers,
+                        ):
+                            connection.putheader(name, value)
+                        connection.endheaders(b"{}")
                         response = connection.getresponse()
                         return response.status, response.read()
                     finally:
@@ -131,14 +131,41 @@ class AdapterHTTPTests(unittest.TestCase):
                     ("/bindings/other/v1/chat/completions", "/bindings/other/v1/chat/completions"),
                     ("/bindings/1company/v1/chat/completions", "/custom/one/v1/chat/completions"),
                 ):
-                    status, body = request(route)
-                    self.assertEqual(status, 200)
-                    self.assertIn(b"[DONE]", body)
-                    path_seen, headers = received[-1]
-                    self.assertEqual(path_seen, expected)
-                    self.assertEqual(headers.get("X-Neurwerk-Authorization"), "Bearer test-key")
-                    for header in ("Authorization", "Proxy-Authorization", "Cookie"):
-                        self.assertNotIn(header, headers)
+                    for credential_headers in (
+                        (),
+                        (("X-Neurwerk-Credential-Mode", "global"),),
+                        (("X-Neurwerk-Credential-Mode", "none"),),
+                        (("X-Neurwerk-Credential-Mode", "override"),),
+                        (("X-Neurwerk-Credential-Mode", "unknown"),),
+                        (("x-NeUrWeRk-CrEdEnTiAl-MoDe", "override"),),
+                        (
+                            ("X-Neurwerk-Credential-Mode", "global"),
+                            ("X-Neurwerk-Credential-Mode", "override"),
+                        ),
+                        (
+                            ("X-Neurwerk-Credential-Mode", "none"),
+                            ("x-neurwerk-credential-mode", "override"),
+                        ),
+                        (("X-Neurwerk-Credential-Mode", "global, override"),),
+                    ):
+                        with self.subTest(route=route, credential_headers=credential_headers):
+                            before = len(received)
+                            status, body = request(route, credential_headers=credential_headers)
+                            self.assertEqual(status, 200)
+                            self.assertEqual(body, b'data: {"choices":[]}\n\ndata: [DONE]\n\n')
+                            self.assertEqual(len(received), before + 1)
+                            path_seen, headers = received[-1]
+                            self.assertEqual(path_seen, expected)
+                            self.assertEqual(
+                                headers.get("X-Neurwerk-Authorization"), "Bearer test-key"
+                            )
+                            for header in (
+                                "authorization",
+                                "proxy-authorization",
+                                "cookie",
+                                "x-neurwerk-credential-mode",
+                            ):
+                                self.assertNotIn(header, {name.lower() for name in headers})
                 if custom_bootstrap:
                     self.assertEqual(request("/bindings/local/v1/chat/completions")[0], 200)
                     self.assertEqual(received[-1][0], f"{bootstrap_path}/v1/chat/completions")
