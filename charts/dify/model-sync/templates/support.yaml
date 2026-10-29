@@ -1,5 +1,5 @@
 {{- if and .Values.frontendDify.modelSync.enabled (eq .Values.component "support") }}
-{{- if ne (int .Values.frontendDify.modelSync.projection.schema_version) 1 }}{{ fail "model sync requires projection schema 1" }}{{ end }}
+{{- if ne (int .Values.frontendDify.modelSync.projection.schema_version) 2 }}{{ fail "model sync requires projection schema 2" }}{{ end }}
 {{- range .Values.frontendDify.modelSync.projection.models }}
 {{- if .metadata }}
 {{- $limits := .metadata.limits }}

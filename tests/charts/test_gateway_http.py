@@ -55,7 +55,7 @@ class AdapterHTTPTests(unittest.TestCase):
                     "enabled": True,
                     "projection": {
                         "bindings": [
-                            {"id": "company", "api_path": "/custom/company-chat"},
+                            {"id": "global", "api_path": "/custom/global-chat"},
                             {"id": "other", "api_path": "/bindings/other"},
                             {"id": "1company", "api_path": "/custom/one"},
                         ]
@@ -125,8 +125,8 @@ class AdapterHTTPTests(unittest.TestCase):
                 for route, expected in (
                     ("/v1/chat/completions", f"{bootstrap_path}/v1/chat/completions"),
                     (
-                        "/bindings/company/v1/chat/completions",
-                        "/custom/company-chat/v1/chat/completions",
+                        "/bindings/global/v1/chat/completions",
+                        "/custom/global-chat/v1/chat/completions",
                     ),
                     ("/bindings/other/v1/chat/completions", "/bindings/other/v1/chat/completions"),
                     ("/bindings/1company/v1/chat/completions", "/custom/one/v1/chat/completions"),
@@ -144,20 +144,20 @@ class AdapterHTTPTests(unittest.TestCase):
                     self.assertEqual(received[-1][0], f"{bootstrap_path}/v1/chat/completions")
                 accepted = len(received)
                 for path in (
-                    "http://unapproved.invalid/bindings/company/v1/chat/completions",
-                    "/bindings/company/v1/chat/completions?x=1",
-                    "/bindings/company/v1/chat/completions?",
-                    "/bindings/company/v1/chat/completions/",
-                    "/bindings/company/v1//chat/completions",
-                    "/bindings/company/v1/./chat/completions",
-                    "/bindings/company/v1/%63hat/completions",
+                    "http://unapproved.invalid/bindings/global/v1/chat/completions",
+                    "/bindings/global/v1/chat/completions?x=1",
+                    "/bindings/global/v1/chat/completions?",
+                    "/bindings/global/v1/chat/completions/",
+                    "/bindings/global/v1//chat/completions",
+                    "/bindings/global/v1/./chat/completions",
+                    "/bindings/global/v1/%63hat/completions",
                     "/bindings/unknown/v1/chat/completions",
-                    "/bindings/company/v1/models",
-                    "/bindings/company/v1/chat/completions;extra",
+                    "/bindings/global/v1/models",
+                    "/bindings/global/v1/chat/completions;extra",
                 ):
                     with self.subTest(path=path):
                         self.assertEqual(request(path)[0], 404)
-                route = "/bindings/company/v1/chat/completions"
+                route = "/bindings/global/v1/chat/completions"
                 self.assertEqual(request(route, method="GET")[0], 405)
                 self.assertEqual(request(route, identity="Basic bad")[0], 401)
                 self.assertEqual(len(received), accepted)

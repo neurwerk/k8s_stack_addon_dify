@@ -37,7 +37,7 @@ def arguments(argv: list[str] | None = None) -> argparse.Namespace:
     run.add_argument("--catalog-namespace", default="frontend-studio")
     run.add_argument("--mode", choices=["preview", "apply"], default="preview")
     run.add_argument("--expected-projection-revision", required=True)
-    run.add_argument("--max-company-models", type=int, default=27)
+    run.add_argument("--max-global-models", type=int, default=27)
     run.add_argument("--wait-seconds", type=int, default=0)
     return parser.parse_args(argv)
 
@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
                     namespace=args.namespace,
                     mode=args.mode,
                     expected=args.expected_projection_revision,
-                    max_company=args.max_company_models,
+                    max_global=args.max_global_models,
                     wait_seconds=args.wait_seconds,
                 )
             print(json.dumps(result, sort_keys=True))

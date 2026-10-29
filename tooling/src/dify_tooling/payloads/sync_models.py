@@ -28,14 +28,14 @@ CAPABILITIES = {
 LOCK_KEY = 0x44494659424F4F54
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
 MAX_DOCUMENT_BYTES = 1_048_576
-MAX_COMPANY_MODELS = 27
+MAX_GLOBAL_MODELS = 27
 RETRYABLE_VALIDATION_STATUSES = {429, 500, 502, 503, 504}
 MODEL_VALIDATION_STATUSES = {400, 404, 422} | RETRYABLE_VALIDATION_STATUSES
 MAX_VALIDATION_ATTEMPTS = 3
 BINDING_PATTERN = r"[a-z0-9](?:[-a-z0-9]{0,30}[a-z0-9])?"
 API_PATH_PATTERN = r"(?:/[a-z0-9][a-z0-9-]*)+"
 DIGEST_PATTERN = r"[a-f0-9]{64}"
-ROLE_PATTERN = r"(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z0-9][a-z0-9-]{0,47}:company-use)"
+ROLE_PATTERN = r"(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z0-9][a-z0-9-]{0,47}:global-use)"
 TIMESTAMP_PATTERN = r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,9})?Z"
 
 
@@ -137,7 +137,7 @@ def validate_projection(
         "invalid revision digest",
     )
     require(
-        type(projection["schema_version"]) is int and projection["schema_version"] == 1,
+        type(projection["schema_version"]) is int and projection["schema_version"] == 2,
         "unsupported projection schema",
     )
     unsigned = {k: v for k, v in projection.items() if k != "projection_revision"}
@@ -182,10 +182,10 @@ def validate_projection(
         )
         require(binding["api_path"] not in bindings.values(), "duplicate binding API path")
         bindings[binding["id"]] = binding["api_path"]
-    require(type(cap) is int and 0 <= cap <= MAX_COMPANY_MODELS, "invalid company model cap")
+    require(type(cap) is int and 0 <= cap <= MAX_GLOBAL_MODELS, "invalid global model cap")
     require(
-        sum(m.get("credential_mode") == "company" for m in projection["models"]) <= cap,
-        "company model cap exceeded",
+        sum(m.get("credential_mode") == "global" for m in projection["models"]) <= cap,
+        "global model cap exceeded",
     )
     now = now or datetime.now(timezone.utc)
     seen = set()
@@ -202,7 +202,7 @@ def validate_projection(
         require(public_id not in seen, "ambiguous public model identity")
         seen.add(public_id)
         require(f"model:{public_id}:invoke" in roles, "model permission absent")
-        require(model["credential_mode"] in {"company", "local"}, "unsupported credential mode")
+        require(model["credential_mode"] in {"global", "none"}, "unsupported credential mode")
         metadata = model["metadata"]
         if metadata is None:
             continue
@@ -626,7 +626,7 @@ def run(report) -> None:
     projection = validate_projection(
         load_projection(Path("/etc/dify-model-sync/projection.json").read_text()),
         os.environ.get("EXPECTED_PROJECTION_REVISION", ""),
-        int(os.environ["MAX_COMPANY_MODELS"]),
+        int(os.environ["MAX_GLOBAL_MODELS"]),
     )
     api_key = os.environ.get("LLM_PROXY_API_KEY", "")
     require(bool(api_key), "gateway credential unavailable")

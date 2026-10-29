@@ -88,7 +88,7 @@ def read_inputs(
 
 
 def prepare_job(
-    data: dict[str, str], *, namespace: str, name: str, mode: str, expected: str, max_company: int
+    data: dict[str, str], *, namespace: str, name: str, mode: str, expected: str, max_global: int
 ) -> dict[str, Any]:
     job = copy.deepcopy(load_json(data["job-template.json"]))
     if job.get("apiVersion") != "batch/v1" or job.get("kind") != "Job":
@@ -116,7 +116,7 @@ def prepare_job(
     supplied = {
         "DIFY_MODEL_SYNC_MODE": mode,
         "EXPECTED_PROJECTION_REVISION": expected,
-        "MAX_COMPANY_MODELS": str(max_company),
+        "MAX_GLOBAL_MODELS": str(max_global),
     }
     env[:] = [item for item in env if item.get("name") not in supplied]
     env.extend({"name": key, "value": value} for key, value in supplied.items())
@@ -139,20 +139,20 @@ def launch(
     namespace: str,
     mode: str,
     expected: str,
-    max_company: int,
+    max_global: int,
     wait_seconds: int,
 ) -> dict[str, Any]:
-    if mode not in {"preview", "apply"} or not 0 <= max_company <= 27:
-        raise MetadataError("invalid mode or company-model cap (maximum 27)")
+    if mode not in {"preview", "apply"} or not 0 <= max_global <= 27:
+        raise MetadataError("invalid mode or global-model cap (maximum 27)")
     proposed, maps = read_inputs(core, catalog_namespace, namespace)
     data = maps[2].data
     require_installed_projection(load_json(data["projection.json"]), proposed, expected)
-    company_count = sum(m["credential_mode"] == "company" for m in proposed["models"])
-    if mode == "apply" and company_count > max_company:
-        raise MetadataError("selected company models exceed the approved cap")
+    global_count = sum(m["credential_mode"] == "global" for m in proposed["models"])
+    if mode == "apply" and global_count > max_global:
+        raise MetadataError("selected global models exceed the approved cap")
     name = f"frontend-dify-model-sync-{uuid.uuid4().hex[:12]}"
     job = prepare_job(
-        data, namespace=namespace, name=name, mode=mode, expected=expected, max_company=max_company
+        data, namespace=namespace, name=name, mode=mode, expected=expected, max_global=max_global
     )
     inputs = [
         ConfigMapVersion(ns, cm_name, obj.metadata.uid, obj.metadata.resource_version)
@@ -172,7 +172,7 @@ def launch(
     result: dict[str, Any] = {
         "job": name,
         "mode": mode,
-        "company_models": company_count,
+        "global_models": global_count,
         "selected_models": len(proposed["models"]),
         "status": submitted.status,
     }

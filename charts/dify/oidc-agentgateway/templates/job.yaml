@@ -60,7 +60,7 @@ spec:
             {{- if not (has "llm:invoke" $roles) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must include llm:invoke" }}{{- end }}
             {{- if ne (len $roles) (len ($roles | uniq)) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must not contain duplicates" }}{{- end }}
             {{- range ($roles | sortAlpha) }}
-            {{- if not (regexMatch "^(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z0-9][a-z0-9-]{0,47}:company-use)$" .) }}{{- fail (printf "invalid Dify AgentGateway role %q" .) }}{{- end }}
+            {{- if not (regexMatch "^(?:llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z0-9][a-z0-9-]{0,47}:global-use)$" .) }}{{- fail (printf "invalid Dify AgentGateway role %q" .) }}{{- end }}
             {{- if not (has . $allRoles) }}{{- fail (printf "Dify AgentGateway role %q is absent from authKeycloak.agentgatewayClientRoles" .) }}{{- end }}
             {{- end }}
             - name: KC_GATEWAY_ROLE_SCOPE

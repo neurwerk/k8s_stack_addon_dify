@@ -27,7 +27,7 @@ spec:
     - {kind: ConfigMap, namespace: infra-cert-manager, name: client-values, owner: client}
   prerequisites:
     base: 0.4.0
-    tooling: 0.15.0
+    tooling: 0.15.5
     stackSetup: 0.8.0
     baseCharts:
       - charts/postgres/addon

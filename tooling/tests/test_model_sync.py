@@ -63,8 +63,8 @@ def catalog():
                     "credential_modes": [
                         {
                             "source": source,
-                            "required_permissions": [f"provider:{name}:company-use"]
-                            if source == "company"
+                            "required_permissions": [f"provider:{name}:global-use"]
+                            if source == "global"
                             else [],
                         }
                     ],
@@ -75,7 +75,7 @@ def catalog():
 
     return GatewayCatalog.model_validate(
         {
-            "schema_version": 2,
+            "schema_version": 3,
             "catalog_revision": "a" * 64,
             "policy_revision": "b" * 64,
             "profiles": [
@@ -88,10 +88,10 @@ def catalog():
             ],
             "self-hosted-api-providers": [entry("local", "none")],
             "external-api-providers": [
-                entry("cloud", "company", custom=True),
-                entry("personal", "caller_supplied"),
+                entry("cloud", "global", custom=True),
+                entry("override", "override"),
             ],
-            "external-subscription-providers": [entry("subscription", "company")],
+            "external-subscription-providers": [entry("subscription", "global")],
             "mcp-servers": [],
         }
     )
@@ -132,7 +132,7 @@ def rehash(value):
     return value
 
 
-def test_projection_and_native_credential_identity_match_immutable_legacy_fixture():
+def test_projection_rejects_legacy_schema_but_preserves_native_credential_identity():
     metadata = companion()
     metadata["models"][0]["provenance"].update(
         observed_at="2020-01-01T00:00:00Z", valid_until="2099-01-01T00:00:00Z"
@@ -140,10 +140,27 @@ def test_projection_and_native_credential_identity_match_immutable_legacy_fixtur
     projected = build_projection(catalog(), rehash(metadata))
     # Generated with the consumer at shared Tooling 7103a9f22642b27916508dec8b2b0e68d8fa3072.
     expected = Path(__file__).parent / "fixtures/legacy-projection.json"
-    assert canonical_json(projected).encode() == expected.read_bytes()
+    legacy = json.loads(expected.read_bytes())
+    with pytest.raises(ValueError, match="unsupported projection schema"):
+        payload.validate_projection(legacy, legacy["projection_revision"], 27)
+    payload.validate_projection(projected, projected["projection_revision"], 27)
     assert payload.credential_name(projected["models"][0]) == (
         "gateway-sync-ef06bb6bb5b806c7f054737861b2eaa96ff5219e2084d0a4"
     )
+
+
+@pytest.mark.parametrize("mutation", ["mode", "permission", "version"])
+def test_projection_rejects_legacy_values_before_native_access(mutation):
+    projected = build_projection(catalog(), companion())
+    if mutation == "mode":
+        projected["models"][0]["credential_mode"] = "company"
+    elif mutation == "permission":
+        projected["roles"][-1] = "provider:cloud:company-use"
+    else:
+        projected["schema_version"] = 1
+    projected["projection_revision"] = revision(projected, "projection_revision")
+    with pytest.raises(ValueError):
+        payload.validate_projection(projected, projected["projection_revision"], 27)
 
 
 @pytest.mark.parametrize("value", [True, "100", 1.5, 0, -1])
@@ -233,8 +250,8 @@ def test_hashes_and_duplicate_keys_are_checked():
 def test_projection_same_grants_selection_custom_routes_and_missing_default_metadata():
     projection = build_projection(catalog(), companion())
     assert [(m["binding_id"], m["credential_mode"]) for m in projection["models"]] == [
-        ("cloud", "company"),
-        ("local", "local"),
+        ("cloud", "global"),
+        ("local", "none"),
     ]
     assert projection["models"][1]["metadata"] is None
     assert projection["bindings"] == [
@@ -245,7 +262,7 @@ def test_projection_same_grants_selection_custom_routes_and_missing_default_meta
         "llm:invoke",
         "model:cloud/chat:invoke",
         "model:local/chat:invoke",
-        "provider:cloud:company-use",
+        "provider:cloud:global-use",
     ]
     assert revision(projection, "projection_revision") == projection["projection_revision"]
     require_installed_projection(projection, projection, projection["projection_revision"])
@@ -359,7 +376,7 @@ def test_preview_launcher_snapshots_rechecks_and_never_calls_inference(monkeypat
         namespace="dify",
         mode="preview",
         expected=projection["projection_revision"],
-        max_company=0,
+        max_global=0,
         wait_seconds=0,
     )
     assert result["status"] == "submitted"
@@ -405,7 +422,7 @@ def test_launcher_requires_reviewed_credential_free_export_initializer(mutation)
             name="manual",
             mode="preview",
             expected="a" * 64,
-            max_company=27,
+            max_global=27,
         )
 
 
@@ -434,7 +451,7 @@ def test_launcher_fail_closed_before_creating_resources(mutation):
             namespace="dify",
             mode="apply",
             expected=projection["projection_revision"],
-            max_company=cap,
+            max_global=cap,
             wait_seconds=0,
         )
     core.create_namespaced_config_map.assert_not_called()
@@ -541,7 +558,7 @@ def test_uncertain_job_creation_is_named_and_not_retried():
         namespace="dify",
         mode="apply",
         expected=projection["projection_revision"],
-        max_company=27,
+        max_global=27,
         wait_seconds=0,
     )
     assert result["status"] == "uncertain" and result["phase"] == "job"
@@ -565,7 +582,7 @@ def test_launcher_identifies_failed_models_from_verified_projection(monkeypatch)
         namespace="dify",
         mode="apply",
         expected=projection["projection_revision"],
-        max_company=27,
+        max_global=27,
         wait_seconds=1,
     )
     assert result["status"] == "failed"

@@ -18,7 +18,7 @@ class GatewayTests(unittest.TestCase):
 
     def test_loopback_adapter_preserves_identity_and_streaming(self):
         objects = self.documents(
-            "plugin-daemon", {"frontendDify": {"agentGateway": {"bindingId": "company-ai"}}}
+            "plugin-daemon", {"frontendDify": {"agentGateway": {"bindingId": "global-ai"}}}
         )
         config_map = next(item for item in objects if item["kind"] == "ConfigMap")
         config = config_map["data"]["nginx.conf"]
@@ -32,7 +32,7 @@ class GatewayTests(unittest.TestCase):
         self.assertIn(f"listen {endpoint.hostname}:{endpoint.port};", config)
         self.assertIn(f"location = {endpoint.path}/chat/completions", config)
         self.assertIn("if ($request_method != POST)", config)
-        self.assertIn("/bindings/company-ai/v1/chat/completions;", config)
+        self.assertIn("/bindings/global-ai/v1/chat/completions;", config)
         self.assertIn(
             "infra-agentgateway-gateway.infra-agentgateway.svc.cluster.local:8082", config
         )
@@ -59,7 +59,7 @@ class GatewayTests(unittest.TestCase):
         self.assertIn("exec", sidecar["readinessProbe"])
 
     def test_binding_ids_reject_config_and_path_injection(self):
-        for binding in ("local", "company-ai", "x" * 32):
+        for binding in ("local", "global-ai", "x" * 32):
             with self.subTest(binding=binding):
                 self.documents(
                     "plugin-daemon", {"frontendDify": {"agentGateway": {"bindingId": binding}}}
@@ -80,10 +80,10 @@ class GatewayTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("bindingId", result.stderr)
 
-    def test_company_grants_match_oidc_and_managed_keys(self):
+    def test_global_grants_match_oidc_and_managed_keys(self):
         expected = {
             "llm:invoke",
-            "provider:openrouter:company-use",
+            "provider:openrouter:global-use",
             "model:remote/example/model:invoke",
         }
         values = {
@@ -104,7 +104,7 @@ class GatewayTests(unittest.TestCase):
         )
         for name in ("primary.json", "secondary.json"):
             self.assertEqual(set(json.loads(grants["data"][name])["permissions"]), expected)
-        for bad in ("platform-admin", "provider:unknown:company-use"):
+        for bad in ("platform-admin", "provider:unknown:global-use"):
             rejected = {
                 "authKeycloak": {
                     "agentgatewayClientRoles": sorted(expected | {"platform-admin"}),
