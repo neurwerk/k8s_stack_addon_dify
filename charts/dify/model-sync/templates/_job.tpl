@@ -63,7 +63,7 @@ spec:
             # Launcher must explicitly replace all three values in its snapshot.
             - {name: DIFY_MODEL_SYNC_MODE, value: ""}
             - {name: EXPECTED_PROJECTION_REVISION, value: ""}
-            - {name: MAX_COMPANY_MODELS, value: ""}
+            - {name: MAX_GLOBAL_MODELS, value: ""}
             - {name: PYTHONPATH, value: /app/api}
             - {name: MIGRATION_ENABLED, value: "false"}
             - {name: DB_HOST, value: {{ .Values.frontendDify.postgres.host | quote }}}

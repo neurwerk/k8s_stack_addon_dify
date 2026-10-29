@@ -49,11 +49,11 @@
             "projection": {
               "type": "object",
               "properties": {
-                "schema_version": {"const": 1},
+                "schema_version": {"const": 2},
                 "catalog_revision": {"$ref": "#/definitions/digest"},
                 "metadata_revision": {"$ref": "#/definitions/digest"},
                 "projection_revision": {"$ref": "#/definitions/digest"},
-                "roles": {"type": "array", "maxItems": 128, "uniqueItems": true, "items": {"type": "string", "pattern": "^(llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z0-9][a-z0-9-]{0,47}:company-use)$"}},
+                "roles": {"type": "array", "maxItems": 128, "uniqueItems": true, "items": {"type": "string", "pattern": "^(llm:invoke|model:[A-Za-z0-9][A-Za-z0-9._/-]{0,127}:invoke|provider:[a-z0-9][a-z0-9-]{0,47}:global-use)$"}},
                 "bindings": {"type": "array", "maxItems": 256, "items": {
                   "type": "object", "required": ["id", "api_path"], "additionalProperties": false,
                   "properties": {
@@ -65,7 +65,7 @@
                   "type": "object", "required": ["binding_id", "public_id", "credential_mode", "metadata"], "additionalProperties": false,
                   "properties": {
                     "binding_id": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]{0,30}[a-z0-9])?$"}, "public_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$"},
-                    "credential_mode": {"enum": ["company", "local"]},
+                    "credential_mode": {"enum": ["global", "none"]},
                     "metadata": {"$ref": "#/definitions/metadata"}
                   }
                 }}

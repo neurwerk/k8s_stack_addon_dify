@@ -29,7 +29,7 @@ def test_effective_machine_approval_and_enabled_job_images():
         if obj["kind"] == "ConfigMap"
     }
     settings = yaml.safe_load((ROOT / "tests/validation/helm-lint-values.yaml").read_text())
-    projection = json.loads((ROOT / "tooling/tests/fixtures/legacy-projection.json").read_text())
+    projection = json.loads((ROOT / "tooling/tests/fixtures/projection-v2.json").read_text())
     settings["frontendDify"]["modelSync"] = {"enabled": True, "projection": projection}
     settings["authKeycloak"]["agentgatewayClientRoles"] = projection["roles"]
     settings["authKeycloak"]["difyAgentgatewayClientRoles"] = projection["roles"]

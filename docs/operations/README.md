@@ -11,7 +11,7 @@ Set `dify.enabled: true` and `dify.hostname` in client configuration, and select
 | `dify.hostname` | Shared public hostname for Web/API URLs, cookies, certificate approval, and OIDC callback. |
 | `frontendDify.config` | Application defaults, including social login, registration, owner email, and workspace name. [app-defaults.yaml](../../releases/dify/secret-sync/app-defaults.yaml) enables SSO registration and disables ordinary registration, workspace creation, and email login. |
 | `authKeycloak.difyClientId` | Browser OIDC client; the provisioning Job supplies the Dify audience and scoped realm roles. |
-| `authKeycloak.difyAgentgatewayClientId` and `difyAgentgatewayClientRoles` | Separate model-call service principal and selected invocation/company-use grants. The manifest binds its settings to `auth-keycloak/keycloak-product-values` and trusted `dify-service-approval-values`. |
+| `authKeycloak.difyAgentgatewayClientId` and `difyAgentgatewayClientRoles` | Separate model-call service principal and selected invocation/global-use grants. The manifest binds its settings to `auth-keycloak/keycloak-product-values` and trusted `dify-service-approval-values`. |
 | `frontendDify.agentGateway.bindingId` | Existing AgentGateway binding using the default `/bindings/<id>` path; the adapter does not support a custom `apiPath`. |
 | `frontendDify.defaultModel.name` and `contextSize` | Optional model provisioned by the API init container; its canonical name must match a granted model in the selected binding. |
 | `frontendDify.api`, `webGui`, `worker`, `beat`, `redis`, `sandbox`, `pluginDaemon`, `agent` | Component resource, replica, or storage settings supported by the corresponding chart. |
@@ -64,7 +64,7 @@ After authorized deployment, perform the [shared Flux and event checks](https://
 
 ## Manual model synchronization
 
-Use the Dify tooling package's `dify-model-sync project` command to derive the projection from reviewed catalog and metadata files. `dify-model-sync launch` requires an explicit Kubernetes context and the expected projection revision; preview is the default. Applying changes requires explicit `--mode apply` and a reviewed company-model cap. The command creates a one-shot native Job, never executes in application Pods, and reports uncertain API outcomes without retrying creation. Inspect the named Job before retrying an uncertain submission.
+Use the Dify tooling package's `dify-model-sync project` command to derive the projection from reviewed catalog and metadata files. `dify-model-sync launch` requires an explicit Kubernetes context and the expected projection revision; preview is the default. Applying changes requires explicit `--mode apply` and a reviewed global-model cap. The command creates a one-shot native Job, never executes in application Pods, and reports uncertain API outcomes without retrying creation. Inspect the named Job before retrying an uncertain submission.
 
 The native Job requires the existing sole workspace, matching tenant encryption material and installed provider plugin. It preserves unmanaged credentials and uses only authoritative model metadata. Staging and API images are independently pinned; the tooling stage receives no credentials or ServiceAccount token.
 

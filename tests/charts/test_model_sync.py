@@ -30,18 +30,18 @@ spec.loader.exec_module(sync)
 
 def projection():
     value = {
-        "schema_version": 1,
+        "schema_version": 2,
         "catalog_revision": "a" * 64,
         "metadata_revision": "b" * 64,
-        "roles": ["llm:invoke", "model:example/model:invoke", "provider:example:company-use"],
-        "bindings": [{"id": "company", "api_path": "/custom/chat"}],
+        "roles": ["llm:invoke", "model:example/model:invoke", "provider:example:global-use"],
+        "bindings": [{"id": "global", "api_path": "/custom/chat"}],
         "models": [
             {
-                "binding_id": "company",
+                "binding_id": "global",
                 "public_id": "example/model",
-                "credential_mode": "company",
+                "credential_mode": "global",
                 "metadata": {
-                    "binding_id": "company",
+                    "binding_id": "global",
                     "public_id": "example/model",
                     "limits": {
                         "context_tokens": 64000,
@@ -337,7 +337,7 @@ class ModelSyncTests(unittest.TestCase):
         value = self.projection
         value["bindings"][0]["id"] = "1company"
         value["models"][0]["binding_id"] = value["models"][0]["metadata"]["binding_id"] = "1company"
-        value["roles"][-1] = "provider:1" + "a" * 47 + ":company-use"
+        value["roles"][-1] = "provider:1" + "a" * 47 + ":global-use"
         value["models"][0]["metadata"]["limits"] = dict.fromkeys(
             ("context_tokens", "max_input_tokens", "max_output_tokens"), sync.MAX_SAFE_INTEGER
         )
@@ -390,7 +390,7 @@ class ModelSyncTests(unittest.TestCase):
             with self.subTest(index=index), self.assertRaises(ValueError):
                 sign(candidate)
                 sync.validate_projection(candidate, candidate["projection_revision"], 1)
-        with self.assertRaisesRegex(ValueError, "company model cap"):
+        with self.assertRaisesRegex(ValueError, "global model cap"):
             sync.validate_projection(self.projection, self.projection["projection_revision"], 28)
         for raw in (
             '{"duplicate":1,"duplicate":2}',
@@ -464,7 +464,7 @@ class ModelSyncTests(unittest.TestCase):
             self.run_sync()
         self.assertEqual(self.backend.validations, 1)
         self.backend.credentials[0].decrypted["endpoint_url"] = (
-            "http://127.0.0.1:8080/bindings/company/v1"
+            "http://127.0.0.1:8080/bindings/global/v1"
         )
         self.backend.records.clear()
         self.backend.settings.append(SimpleNamespace(enabled=False))

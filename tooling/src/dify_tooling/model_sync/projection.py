@@ -1,4 +1,4 @@
-"""Select approved company/local chat destinations without duplicating model lists."""
+"""Select approved global/local chat destinations without duplicating model lists."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def select_models(catalog: GatewayCatalog) -> dict[str, Any]:
                     (
                         m
                         for m in dest.credential_modes
-                        if m.source == ("none" if local else "company")
+                        if m.source == ("none" if local else "global")
                     ),
                     None,
                 )
@@ -54,9 +54,9 @@ def select_models(catalog: GatewayCatalog) -> dict[str, Any]:
                     raise MetadataError("destination lacks invocation grants")
                 if not local and (
                     not entry.provider_id
-                    or f"provider:{entry.provider_id}:company-use" not in mode.required_permissions
+                    or f"provider:{entry.provider_id}:global-use" not in mode.required_permissions
                 ):
-                    raise MetadataError("company mode lacks billing grant")
+                    raise MetadataError("global mode lacks billing grant")
                 for route in routes:
                     path = urlsplit(route.url).path
                     if not re.fullmatch(r"(?:/[a-z0-9][a-z0-9-]*)+/v1", path):
@@ -69,7 +69,7 @@ def select_models(catalog: GatewayCatalog) -> dict[str, Any]:
                     {
                         "binding_id": entry.id,
                         "public_id": dest.id,
-                        "credential_mode": "local" if local else "company",
+                        "credential_mode": "none" if local else "global",
                     }
                 )
             if selected:
@@ -92,7 +92,7 @@ def build_projection(catalog: GatewayCatalog, metadata: dict[str, Any]) -> dict[
     for model in selection["models"]:
         model["metadata"] = lookup.get((model["binding_id"], model["public_id"]))
     result: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "catalog_revision": catalog.catalog_revision,
         "metadata_revision": companion.metadata_revision,
         **selection,
