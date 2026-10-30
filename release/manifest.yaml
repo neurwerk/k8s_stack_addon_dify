@@ -27,7 +27,7 @@ spec:
     - {kind: ConfigMap, namespace: infra-cert-manager, name: client-values, owner: client}
   prerequisites:
     base: 0.4.0
-    tooling: 0.15.5
+    tooling: 0.15.6
     stackSetup: 0.8.0
     baseCharts:
       - charts/postgres/addon
@@ -96,7 +96,7 @@ spec:
       baseChart: charts/postgres/addon
       extensions: [vector]
   artifacts:
-    - {id: tooling, role: product, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.6@sha256:e916941b1d3fc770787625e1173ed33825b6b77d89c653eb0e43ace9d6f8e903'}
+    - {id: tooling, role: product, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.7@sha256:4edc91dc592cf4f25200c7f24d24391a87fb8133314a29651ff1d9558a206f70'}
     - {id: api, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f'}
     - {id: web, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v1@sha256:05e5297b43855a8ea6b8ec2a1fe631567f8b25146075e9e9a8ece3abc3e638c9'}
     - {id: agent-backend, role: native, image: 'docker.io/langgenius/dify-agent-backend:1.17.1@sha256:a30c039bbead65d7fd8baf8c53fc867373f515c5721e46070ce03ed04c5f1e32'}
