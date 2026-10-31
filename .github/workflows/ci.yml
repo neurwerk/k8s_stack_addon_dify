@@ -11,7 +11,7 @@ permissions:
 
 env:
   # Reviewed candidate for source CI only; tag-driven publication requires stable Base.
-  BASE_REF: d2053342856a82905d5ee3f00879e0547cb22909
+  BASE_REF: 1cb3aa042e8b2ba3dcaf3623cc66d3c43395315c
 
 jobs:
   validate:
@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: neurwerk/k8s_stack_base
-          ref: ${{ startsWith(github.ref, 'refs/tags/') && 'v0.4.0' || env.BASE_REF }}
+          ref: ${{ startsWith(github.ref, 'refs/tags/') && 'v0.3.30' || env.BASE_REF }}
           path: .ci/base
 
       - name: Install Helm

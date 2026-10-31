@@ -3,7 +3,7 @@ kind: AddonRelease
 metadata:
   name: dify
 spec:
-  version: 0.1.4
+  version: 0.1.5
   status: ready
   sourceName: dify-addon
   configurationKey: dify
@@ -26,9 +26,9 @@ spec:
     - {kind: ConfigMap, namespace: frontend-dify, name: dify-product-values, owner: client}
     - {kind: ConfigMap, namespace: infra-cert-manager, name: client-values, owner: client}
   prerequisites:
-    base: 0.4.0
-    tooling: 0.15.6
-    stackSetup: 0.8.0
+    base: 0.3.30
+    tooling: 0.15.8
+    stackSetup: 0.8.4
     baseCharts:
       - charts/postgres/addon
       - charts/keycloak/addon-access
