@@ -35,8 +35,8 @@ spec:
       - charts/keycloak/addon-oidc
     baseChartVersions:
       charts/postgres/addon: 0.1.3
-      charts/keycloak/addon-access: 0.1.6
-      charts/keycloak/addon-oidc: 0.2.1
+      charts/keycloak/addon-access: 0.1.7
+      charts/keycloak/addon-oidc: 0.2.2
   packages:
     - name: namespaces
       path: releases/namespaces/dify
@@ -107,8 +107,8 @@ spec:
     - {id: redis, role: native, image: 'docker.io/redis:7.4.12-alpine@sha256:1cf73a2f04808e55a8bd2f5706c2aa0ebb0f71938f93deb7af79f48311cd5cb9'}
     - {id: sandbox, role: native, image: 'docker.io/langgenius/dify-sandbox:0.2.15@sha256:750e1111426ef31a9217b81c98cccfb750f17b182af3221102e420afa9f0928e'}
     - {id: database-provisioner, role: native, image: 'ghcr.io/documentdb/documentdb/documentdb-local:pg18-0.116.0@sha256:01bb9408393fb6417cc32735f4566dee4b53bbab6df6b70c42797317da631f12'}
-    - {id: access-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.12.0@sha256:b70f0f93ca2c3e5cef9290af2db6480bec72cedc0289ecd232747996eb01091a'}
-    - {id: browser-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.14.0@sha256:a1db80f00e8579478382ecc34717af484cf75239008ae8dbe66b01632aa49305'}
+    - {id: access-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.15.6@sha256:2cfe62109c8067e08a81f422733e6673ef3eb0ee11066f72e7316878a76013db'}
+    - {id: browser-provisioner, role: shared, image: 'ghcr.io/neurwerk/k8s-stack-tooling:0.15.6@sha256:2cfe62109c8067e08a81f422733e6673ef3eb0ee11066f72e7316878a76013db'}
   consumers:
     - {artifact: tooling, kind: Command, argv: [dify-validate, /work/addon]}
     - {artifact: tooling, kind: Command, argv: [dify-model-sync, launch, --help]}
