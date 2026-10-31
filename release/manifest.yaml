@@ -97,8 +97,8 @@ spec:
       extensions: [vector]
   artifacts:
     - {id: tooling, role: product, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.7@sha256:4edc91dc592cf4f25200c7f24d24391a87fb8133314a29651ff1d9558a206f70'}
-    - {id: api, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v1@sha256:62dd9ef6477a7030a3c992d7153bb0c72f82770249b91c36dfc12349f3a7dc8f'}
-    - {id: web, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v1@sha256:05e5297b43855a8ea6b8ec2a1fe631567f8b25146075e9e9a8ece3abc3e638c9'}
+    - {id: api, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v2@sha256:796078d336ebbd5f198188bc361eb1d5519c7f03fdd2daba5f3173507ee45566'}
+    - {id: web, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v2@sha256:b9ad455491ad8bde8266291f0de64b0690989325735a64224b78a11b54443709'}
     - {id: agent-backend, role: native, image: 'docker.io/langgenius/dify-agent-backend:1.17.1@sha256:a30c039bbead65d7fd8baf8c53fc867373f515c5721e46070ce03ed04c5f1e32'}
     - {id: agent-sandbox, role: native, image: 'docker.io/langgenius/dify-agent-local-sandbox:1.17.1@sha256:f4d404c9dcdf80bd72f65e84c3f2bbd1f3404fd4b363db837176da8aaf771b1d'}
     - {id: agent-proxy, role: native, image: 'docker.io/ubuntu/squid:6.6-24.04_beta@sha256:6a097f68bae708cedbabd6188d68c7e2e7a38cedd05a176e1cc0ba29e3bbe029'}
