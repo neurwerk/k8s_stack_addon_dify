@@ -58,7 +58,17 @@ class AdapterHTTPTests(unittest.TestCase):
                             {"id": "global", "api_path": "/custom/global-chat"},
                             {"id": "other", "api_path": "/bindings/other"},
                             {"id": "1company", "api_path": "/custom/one"},
-                        ]
+                            {"id": "local", "api_path": "/bindings/local"},
+                        ],
+                        "models": [
+                            {"binding_id": binding, "credential_mode": mode}
+                            for binding, mode in (
+                                ("global", "global"),
+                                ("other", "none"),
+                                ("1company", "global"),
+                                ("local", "none"),
+                            )
+                        ],
                     },
                 },
             }
@@ -66,8 +76,8 @@ class AdapterHTTPTests(unittest.TestCase):
         bootstrap_path = "/bindings/local"
         if custom_bootstrap:
             bootstrap_path = "/custom/local-chat"
-            values["frontendDify"]["modelSync"]["projection"]["bindings"].append(
-                {"id": "local", "api_path": bootstrap_path}
+            values["frontendDify"]["modelSync"]["projection"]["bindings"][-1]["api_path"] = (
+                bootstrap_path
             )
         result = render("plugin-daemon", values)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -122,14 +132,23 @@ class AdapterHTTPTests(unittest.TestCase):
                     finally:
                         connection.close()
 
-                for route, expected in (
-                    ("/v1/chat/completions", f"{bootstrap_path}/v1/chat/completions"),
+                for route, expected, mode in (
+                    ("/v1/chat/completions", f"{bootstrap_path}/v1/chat/completions", "none"),
                     (
                         "/bindings/global/v1/chat/completions",
                         "/custom/global-chat/v1/chat/completions",
+                        "global",
                     ),
-                    ("/bindings/other/v1/chat/completions", "/bindings/other/v1/chat/completions"),
-                    ("/bindings/1company/v1/chat/completions", "/custom/one/v1/chat/completions"),
+                    (
+                        "/bindings/other/v1/chat/completions",
+                        "/bindings/other/v1/chat/completions",
+                        "none",
+                    ),
+                    (
+                        "/bindings/1company/v1/chat/completions",
+                        "/custom/one/v1/chat/completions",
+                        "global",
+                    ),
                 ):
                     for credential_headers in (
                         (),
@@ -159,11 +178,11 @@ class AdapterHTTPTests(unittest.TestCase):
                             self.assertEqual(
                                 headers.get("X-Neurwerk-Authorization"), "Bearer test-key"
                             )
+                            self.assertEqual(headers.get("X-Neurwerk-Credential-Mode"), mode)
                             for header in (
                                 "authorization",
                                 "proxy-authorization",
                                 "cookie",
-                                "x-neurwerk-credential-mode",
                             ):
                                 self.assertNotIn(header, {name.lower() for name in headers})
                 if custom_bootstrap:

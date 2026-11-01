@@ -1,5 +1,11 @@
 {{- $bootstrapPath := printf "/bindings/%s" .Values.frontendDify.agentGateway.bindingId }}
+{{- $modes := dict }}
 {{- if (.Values.frontendDify.modelSync | default dict).enabled }}
+{{- range .Values.frontendDify.modelSync.projection.models }}
+{{- if not (has .credential_mode (list "none" "global")) }}{{ fail "model-sync adapter supports only none or global credential modes" }}{{ end }}
+{{- if and (hasKey $modes .binding_id) (ne (index $modes .binding_id) .credential_mode) }}{{ fail "model-sync binding mixes credential modes" }}{{ end }}
+{{- $_ := set $modes .binding_id .credential_mode }}
+{{- end }}
 {{- range .Values.frontendDify.modelSync.projection.bindings }}
 {{- if eq .id $.Values.frontendDify.agentGateway.bindingId }}
 {{- $bootstrapPath = .api_path }}
@@ -40,7 +46,7 @@ data:
           proxy_http_version 1.1;
           proxy_set_header Connection "";
           proxy_set_header X-Neurwerk-Authorization $http_authorization;
-          proxy_set_header X-Neurwerk-Credential-Mode "";
+          proxy_set_header X-Neurwerk-Credential-Mode {{ index $modes .Values.frontendDify.agentGateway.bindingId | default "$http_x_neurwerk_credential_mode" }};
           proxy_set_header Authorization "";
           proxy_set_header Proxy-Authorization "";
           proxy_set_header Cookie "";
@@ -56,6 +62,7 @@ data:
         {{- range .Values.frontendDify.modelSync.projection.bindings }}
         {{- if or (not (regexMatch "^[a-z0-9]([-a-z0-9]{0,30}[a-z0-9])?$" .id)) (hasKey $ids .id) }}{{ fail "invalid or duplicate model-sync binding id" }}{{ end }}
         {{- if or (gt (len .api_path) 128) (not (regexMatch "^(/[a-z0-9][a-z0-9-]*)+$" .api_path)) }}{{ fail "invalid model-sync API path" }}{{ end }}
+        {{- if not (hasKey $modes .id) }}{{ fail "model-sync binding has no selected credential mode" }}{{ end }}
         {{- $_ := set $ids .id true }}
         location = /bindings/{{ .id }}/v1/chat/completions {
           if ($request_method != POST) { return 405; }
@@ -65,7 +72,7 @@ data:
           proxy_http_version 1.1;
           proxy_set_header Connection "";
           proxy_set_header X-Neurwerk-Authorization $http_authorization;
-          proxy_set_header X-Neurwerk-Credential-Mode "";
+          proxy_set_header X-Neurwerk-Credential-Mode {{ index $modes .id }};
           proxy_set_header Authorization "";
           proxy_set_header Proxy-Authorization "";
           proxy_set_header Cookie "";
