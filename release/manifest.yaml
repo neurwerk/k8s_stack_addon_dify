@@ -26,9 +26,9 @@ spec:
     - {kind: ConfigMap, namespace: frontend-dify, name: dify-product-values, owner: client}
     - {kind: ConfigMap, namespace: infra-cert-manager, name: client-values, owner: client}
   prerequisites:
-    base: 0.3.31
+    base: 0.3.32
     tooling: 0.16.0
-    stackSetup: 0.8.4
+    stackSetup: 0.8.5
     baseCharts:
       - charts/postgres/addon
       - charts/keycloak/addon-access
