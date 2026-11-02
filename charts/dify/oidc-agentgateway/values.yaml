@@ -12,7 +12,7 @@ openrouterCatalog:
   models: []
 
 k8sTools:
-  image: ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.7@sha256:4edc91dc592cf4f25200c7f24d24391a87fb8133314a29651ff1d9558a206f70
+  image: ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.8@sha256:59067a21f6b9879d390be0ee35956b29f4d7e6d8d971e3c84af9e029547353cd
 serviceApproval: {}
 frontendDify:
   modelSync:
