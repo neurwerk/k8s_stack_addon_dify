@@ -120,6 +120,7 @@ class AdapterHTTPTests(unittest.TestCase):
                         for name, value in (
                             ("Authorization", identity),
                             ("X-Neurwerk-Authorization", "spoofed"),
+                            ("Authorization-Neurwerk", "spoofed"),
                             ("Proxy-Authorization", "private-proxy"),
                             ("Cookie", "private-cookie"),
                             ("Content-Length", "2"),

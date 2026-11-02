@@ -252,7 +252,23 @@ def test_hashes_and_duplicate_keys_are_checked():
 
 
 def test_projection_same_grants_selection_custom_routes_and_missing_default_metadata():
-    projection = build_projection(catalog(), companion())
+    raw = catalog().model_dump(by_alias=True)
+    cloud = raw["external-api-providers"][0]
+    cloud["routes"].insert(
+        0,
+        {
+            **cloud["routes"][0],
+            "id": "cloud-override",
+            "url": "https://gateway.example.test/override/custom/api/v1",
+            "provider_credential_source": "override",
+            "identity_header": "Authorization-Neurwerk",
+        },
+    )
+    cloud["destinations"][0]["endpoint_ids"].append("cloud-override")
+    cloud["destinations"][0]["credential_modes"].append(
+        {"source": "override", "required_permissions": []}
+    )
+    projection = build_projection(GatewayCatalog.model_validate(raw), companion())
     assert [(m["binding_id"], m["credential_mode"]) for m in projection["models"]] == [
         ("cloud", "global"),
         ("local", "none"),
