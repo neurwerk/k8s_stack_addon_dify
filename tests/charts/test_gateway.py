@@ -36,8 +36,14 @@ class GatewayTests(unittest.TestCase):
         self.assertIn(
             "infra-agentgateway-gateway.infra-agentgateway.svc.cluster.local:8082", config
         )
-        self.assertIn("proxy_set_header X-Neurwerk-Authorization $http_authorization;", config)
-        for header in ("Authorization", "Proxy-Authorization", "Cookie"):
+        self.assertIn("proxy_set_header Authorization $http_authorization;", config)
+        for header in (
+            "X-Neurwerk-Authorization",
+            "X-Neurwerk-Credential-Mode",
+            "Authorization-Neurwerk",
+            "Proxy-Authorization",
+            "Cookie",
+        ):
             self.assertIn(f'proxy_set_header {header} "";', config)
         for directive in (
             "proxy_buffering off;",

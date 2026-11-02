@@ -132,7 +132,7 @@ class AdapterHTTPTests(unittest.TestCase):
                     finally:
                         connection.close()
 
-                for route, expected, mode in (
+                for route, expected, _mode in (
                     ("/v1/chat/completions", f"{bootstrap_path}/v1/chat/completions", "none"),
                     (
                         "/bindings/global/v1/chat/completions",
@@ -175,12 +175,11 @@ class AdapterHTTPTests(unittest.TestCase):
                             self.assertEqual(len(received), before + 1)
                             path_seen, headers = received[-1]
                             self.assertEqual(path_seen, expected)
-                            self.assertEqual(
-                                headers.get("X-Neurwerk-Authorization"), "Bearer test-key"
-                            )
-                            self.assertEqual(headers.get("X-Neurwerk-Credential-Mode"), mode)
+                            self.assertEqual(headers.get("Authorization"), "Bearer test-key")
                             for header in (
-                                "authorization",
+                                "x-neurwerk-authorization",
+                                "x-neurwerk-credential-mode",
+                                "authorization-neurwerk",
                                 "proxy-authorization",
                                 "cookie",
                             ):

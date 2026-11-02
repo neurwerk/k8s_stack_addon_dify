@@ -45,6 +45,8 @@ def select_models(catalog: GatewayCatalog) -> dict[str, Any]:
                     for r in entry.routes
                     if r.id in dest.endpoint_ids
                     and r.entry_mode == "api"
+                    and r.provider_credential_source == mode.source
+                    and r.identity_header == "Authorization"
                     and set(r.caller_auth_modes) & {"neurwerk_bearer", "oidc_bearer"}
                 ]
                 if not routes:

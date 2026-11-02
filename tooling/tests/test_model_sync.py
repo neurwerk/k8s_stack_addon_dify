@@ -50,6 +50,10 @@ def catalog():
                     "url": f"https://gateway.example.test/{path}/v1",
                     "entry_mode": "api",
                     "caller_auth_modes": ["neurwerk_bearer"],
+                    "provider_credential_source": source,
+                    "identity_header": "Authorization-Neurwerk"
+                    if source == "override"
+                    else "Authorization",
                 }
             ],
             "destinations": [
