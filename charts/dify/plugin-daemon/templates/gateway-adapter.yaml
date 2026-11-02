@@ -45,9 +45,10 @@ data:
           if ($valid_identity = 0) { return 401; }
           proxy_http_version 1.1;
           proxy_set_header Connection "";
-          proxy_set_header X-Neurwerk-Authorization $http_authorization;
-          proxy_set_header X-Neurwerk-Credential-Mode {{ index $modes .Values.frontendDify.agentGateway.bindingId | default "$http_x_neurwerk_credential_mode" }};
-          proxy_set_header Authorization "";
+          proxy_set_header Authorization $http_authorization;
+          proxy_set_header X-Neurwerk-Authorization "";
+          proxy_set_header X-Neurwerk-Credential-Mode "";
+          proxy_set_header Authorization-Neurwerk "";
           proxy_set_header Proxy-Authorization "";
           proxy_set_header Cookie "";
           proxy_buffering off;
@@ -71,9 +72,10 @@ data:
           if ($valid_identity = 0) { return 401; }
           proxy_http_version 1.1;
           proxy_set_header Connection "";
-          proxy_set_header X-Neurwerk-Authorization $http_authorization;
-          proxy_set_header X-Neurwerk-Credential-Mode {{ index $modes .id }};
-          proxy_set_header Authorization "";
+          proxy_set_header Authorization $http_authorization;
+          proxy_set_header X-Neurwerk-Authorization "";
+          proxy_set_header X-Neurwerk-Credential-Mode "";
+          proxy_set_header Authorization-Neurwerk "";
           proxy_set_header Proxy-Authorization "";
           proxy_set_header Cookie "";
           proxy_buffering off;
