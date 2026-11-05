@@ -153,7 +153,7 @@ def _load_credentials_config():
         return {}
 
     try:
-        cfg = json.loads(raw) if isinstance(raw, str) else raw
+        cfg = json.loads(raw)
     except json.JSONDecodeError as exc:
         raise ValueError("MODEL_PROVIDER_CREDENTIALS is not valid JSON") from exc
 

@@ -496,6 +496,9 @@ version = "0.1.8"
 source = { editable = "." }
 dependencies = [
     { name = "k8s-stack-tooling" },
+    { name = "kubernetes" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
 ]
 
 [package.dev-dependencies]
@@ -507,7 +510,12 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "k8s-stack-tooling", url = "https://github.com/neurwerk/k8s_stack_tooling/releases/download/v0.16.0/k8s_stack_tooling-0.16.0-py3-none-any.whl" }]
+requires-dist = [
+    { name = "k8s-stack-tooling", url = "https://github.com/neurwerk/k8s_stack_tooling/releases/download/v0.16.0/k8s_stack_tooling-0.16.0-py3-none-any.whl" },
+    { name = "kubernetes", specifier = ">=36.0.3,<37" },
+    { name = "pydantic", specifier = ">=2.10,<3" },
+    { name = "pyyaml", specifier = ">=6.0,<7" },
+]
 
 [package.metadata.requires-dev]
 dev = [

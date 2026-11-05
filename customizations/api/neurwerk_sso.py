@@ -3,9 +3,12 @@
 # See LICENSES/Dify-LICENSE and NOTICE-CHANGES.md.
 """Keycloak admission for the pinned Dify 1.17.1 OAuth application service."""
 
+from __future__ import annotations
+
 import hmac
 import secrets
 import urllib.parse
+from typing import TYPE_CHECKING
 
 import httpx
 import jwt
@@ -24,6 +27,11 @@ from services.account_oauth_adapters import DifyOAuthProviderGateway
 from services.account_oauth_service import AccountOAuthService
 from services.entities.account_oauth_entities import OAuthCallbackCommand, OAuthIdentity
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session, sessionmaker
+
+    from libs.oauth import JsonObject
+
 
 def _settings():
     from configs import dify_config
@@ -32,7 +40,7 @@ def _settings():
 
 
 class KeycloakOAuth(OAuth):
-    def __init__(self):
+    def __init__(self) -> None:
         config = _settings()
         self.issuer = config.KEYCLOAK_OIDC_ISSUER_URL.rstrip("/")
         self.discovery = None
@@ -56,8 +64,12 @@ class KeycloakOAuth(OAuth):
         return self.discovery
 
     def get_authorization_url(
-        self, invite_token=None, timezone=None, language=None, redirect_url=None
-    ):
+        self,
+        invite_token: str | None = None,
+        timezone: str | None = None,
+        language: str | None = None,
+        redirect_url: str | None = None,
+    ) -> str:
         nonce = secrets.token_urlsafe(32)
         session["keycloak_oauth_state"] = nonce
         state = {"nonce": nonce}
@@ -85,7 +97,7 @@ class KeycloakOAuth(OAuth):
             )
         )
 
-    def get_access_token(self, code):
+    def get_access_token(self, code: str) -> str:
         response = httpx.post(
             self._discover()["token_endpoint"],
             data={
@@ -103,7 +115,7 @@ class KeycloakOAuth(OAuth):
             raise ValueError("Keycloak returned no access token")
         return token
 
-    def get_raw_user_info(self, token):
+    def get_raw_user_info(self, token: str) -> JsonObject:
         try:
             key = jwt.PyJWKClient(self._discover()["jwks_uri"]).get_signing_key_from_jwt(token)
             claims = jwt.decode(
@@ -146,7 +158,7 @@ class KeycloakOAuth(OAuth):
         )
 
 
-def decode_keycloak_state(state):
+def decode_keycloak_state(state: str | None) -> JsonObject:
     if not state:
         raise ValueError("Keycloak OAuth state is required")
     try:
@@ -342,7 +354,7 @@ class KeycloakAccountOAuthService(AccountOAuthService):
         return super()._provision_owner_workspace_if_required(account_id, account_claim)
 
 
-def build_oauth_service(*, session_factory, **kwargs):
+def build_oauth_service(*, session_factory: sessionmaker[Session], **kwargs) -> AccountOAuthService:
     """Build explicit Keycloak adapters before constructing the OAuth service."""
     config = _settings()
     if not (config.KEYCLOAK_OIDC_ISSUER_URL or config.KEYCLOAK_OIDC_CLIENT_ID):

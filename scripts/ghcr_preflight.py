@@ -53,7 +53,8 @@ def _request(request: urllib.request.Request) -> Response:
         with urllib.request.urlopen(request, timeout=30) as response:
             return Response(response.status, response.headers, response.read())
     except urllib.error.HTTPError as exc:
-        return Response(exc.code, exc.headers, exc.read())
+        with exc:
+            return Response(exc.code, exc.headers, exc.read())
     except (OSError, urllib.error.URLError) as exc:
         raise PreflightError(f"registry request failed: {exc}") from exc
 
