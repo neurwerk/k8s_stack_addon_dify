@@ -56,7 +56,24 @@ spec:
             {{- if (.Values.frontendDify.modelSync | default dict).enabled }}
             {{- if ne (toJson ($roles | sortAlpha)) (toJson (.Values.frontendDify.modelSync.projection.roles | sortAlpha)) }}{{ fail "Dify roles must match model-sync projection roles" }}{{ end }}
             {{- end }}
-            {{- $allRoles := include "keycloak-dify-agentgateway.effectiveRoles" . | fromYamlArray }}
+            {{- $catalogUpstreams := dict }}
+            {{- $catalogNames := dict }}
+            {{- range $entry := .Values.openrouterCatalog.models | default list }}
+            {{- if hasKey $catalogUpstreams $entry.upstreamModel }}{{- fail (printf "OpenRouter upstream model %q is duplicated" $entry.upstreamModel) }}{{- end }}
+            {{- if hasKey $catalogNames $entry.name }}{{- fail (printf "OpenRouter public model name %q is duplicated" $entry.name) }}{{- end }}
+            {{- $_ := set $catalogUpstreams $entry.upstreamModel true }}
+            {{- $_ := set $catalogNames $entry.name true }}
+            {{- end }}
+            {{- $excluded := .Values.openrouterCatalog.excludedModels | default list }}
+            {{- if ne (len $excluded) (len ($excluded | uniq)) }}{{- fail "openrouterCatalog.excludedModels must not contain duplicates" }}{{- end }}
+            {{- range $upstream := $excluded }}{{- if not (hasKey $catalogUpstreams $upstream) }}{{- fail (printf "openrouterCatalog.excludedModels contains unknown upstream model %q" $upstream) }}{{- end }}{{- end }}
+            {{- $allRoles := .Values.authKeycloak.agentgatewayClientRoles | default list | uniq }}
+            {{- if .Values.openrouterCatalog.enabled }}
+            {{- range $entry := .Values.openrouterCatalog.models | default list }}
+            {{- if not (has $entry.upstreamModel $excluded) }}{{- $allRoles = append $allRoles (printf "model:%s:invoke" $entry.name) }}{{- end }}
+            {{- end }}
+            {{- end }}
+            {{- $allRoles = $allRoles | uniq }}
             {{- if not (has "llm:invoke" $roles) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must include llm:invoke" }}{{- end }}
             {{- if ne (len $roles) (len ($roles | uniq)) }}{{- fail "authKeycloak.difyAgentgatewayClientRoles must not contain duplicates" }}{{- end }}
             {{- range ($roles | sortAlpha) }}

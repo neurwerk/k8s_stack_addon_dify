@@ -13,10 +13,6 @@ frontendDify:
     user: dify
     database: dify
     vectorDatabase: dify_vector
-  api:
-    ports:
-      container:
-        http: 5001
   config:
     MODE: worker
     LOG_LEVEL: WARNING
@@ -34,5 +30,3 @@ frontendDify:
       limits:
         cpu: 1000m
         memory: 1Gi
-  storage:
-    size: 20Gi

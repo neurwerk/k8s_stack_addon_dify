@@ -19,7 +19,6 @@ spec:
     - {kind: ConfigMap, namespace: auth-keycloak-api-key-bridge, name: client-openrouter-catalog-values, owner: client}
     - {kind: ConfigMap, namespace: auth-keycloak-api-key-bridge, name: dify-model-sync-values, owner: client}
     - {kind: ConfigMap, namespace: frontend-dify, name: dify-model-sync-values, owner: client}
-    - {kind: ConfigMap, namespace: infra-postgres-operations, name: dify-model-sync-values, owner: client}
     - {kind: ConfigMap, namespace: auth-keycloak-api-key-bridge, name: client-values, owner: client}
     - {kind: ConfigMap, namespace: auth-keycloak-api-key-bridge, name: keycloak-product-values, owner: client}
     - {kind: ConfigMap, namespace: frontend-dify, name: client-values, owner: client}
