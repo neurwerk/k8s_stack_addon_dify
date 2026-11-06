@@ -370,28 +370,57 @@ def _wait_for_daemon(tenant_id: str) -> bool:
 
 
 def _ensure_tenant_rsa(tenant) -> None:
-    """Ensure the tenant has an RSA key pair for credential encryption.
+    """Verify tenant encryption, repairing only uninitialized local key state.
 
-    Upstream generates this at tenant creation (account_service). Our
-    _auto_setup predates that, and any credential decrypt path
-    (ProviderManager.get_configurations) fails without it — in the console
-    UI as well as here. Idempotent.
+    Native setup creates keys for new tenants. Older bootstrap installations
+    may have no public key yet; retain that repair without treating an existing
+    workspace's encrypted values as disposable.
     """
+    from configs import dify_config
+    from core.helper import encrypter
     from extensions.ext_database import db
-    from libs import rsa
-    from libs.rsa import PrivkeyNotFoundError
+    from libs.key_providers import generate_key_pair
 
-    try:
-        rsa.get_decrypt_decoding(tenant.id)
-        logger.info("Tenant RSA key pair exists.")
-        return
-    except PrivkeyNotFoundError:
-        pass
+    repaired = False
+    if dify_config.KEY_PROVIDER_TYPE == "local":
+        from extensions.ext_storage import storage
+        from libs import rsa
 
-    logger.info("Generating RSA key pair for tenant %s ...", tenant.id)
-    tenant.encrypt_public_key = rsa.generate_key_pair(tenant.id)
-    db.session.commit()
-    logger.info("RSA key pair generated (private key persisted to storage).")
+        try:
+            private_key = storage.load(f"privkeys/{tenant.id}/private.pem")
+        except FileNotFoundError as exc:
+            if tenant.encrypt_public_key:
+                raise RuntimeError(
+                    "Existing tenant encryption key is missing; restore the matching "
+                    "key or correct the storage configuration before retrying bootstrap."
+                ) from exc
+            tenant.encrypt_public_key = generate_key_pair(tenant.id)
+            repaired = True
+        else:
+            # Redis may temporarily contain a different key or the only copy.
+            # Verify durable material before trusting the native cached path.
+            key = rsa.RSA.import_key(private_key)
+            if not key.has_private():
+                raise RuntimeError("Tenant encryption storage does not contain a private key")
+            if tenant.encrypt_public_key:
+                public = rsa.RSA.import_key(tenant.encrypt_public_key)
+                if (key.n, key.e) != (public.n, public.e):
+                    raise RuntimeError("Tenant encryption public/private key mismatch")
+            else:
+                # A previous attempt may have saved the private key but failed
+                # to commit its public key. Reuse it instead of rotating it.
+                tenant.encrypt_public_key = key.publickey().export_key().decode()
+                repaired = True
+
+    # Use the configured provider, not local-file assumptions, to check both
+    # directions. Loading a private key alone does not detect a mismatched pair.
+    probe = "dify-bootstrap-key-check"
+    encrypted = encrypter.encrypt_token(tenant.id, probe)
+    if encrypter.decrypt_token(tenant.id, encrypted) != probe:
+        raise RuntimeError("Tenant encryption key verification failed")
+    if repaired:
+        db.session.commit()
+    logger.info("Tenant encryption key verified.")
 
 
 def _ensure_plugins(tenant_id: str) -> None:
