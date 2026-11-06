@@ -4,7 +4,7 @@ frontendDify:
   pullPolicy: IfNotPresent
   modelSync:
     # Published tooling artifact; native API execution remains independently pinned.
-    toolingImage: ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.8@sha256:59067a21f6b9879d390be0ee35956b29f4d7e6d8d971e3c84af9e029547353cd
+    toolingImage: ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.9@sha256:dc8aec814acc0a2ccd1eb49bde67fb1a0d353c1adaa0e2421117842bce33f80c
     # No Job is created by Helm; the local operator CLI snapshots this support.
     enabled: false
     projection: {}
