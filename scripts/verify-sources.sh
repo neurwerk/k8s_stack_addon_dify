@@ -144,7 +144,7 @@ if [[ "${actual_node_digest}" != "${NODE_IMAGE_DIGEST}" ]]; then
   exit 1
 fi
 
-actual_alpine_digest="$(docker_hub_index_digest library/alpine 3.21)"
+actual_alpine_digest="$(docker_hub_index_digest library/alpine 3.24.4)"
 if [[ "${actual_alpine_digest}" != "${ALPINE_IMAGE_DIGEST}" ]]; then
   printf 'ERROR: Alpine image OCI index digest is %s, expected %s.\n' \
     "${actual_alpine_digest}" "${ALPINE_IMAGE_DIGEST}" >&2
