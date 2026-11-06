@@ -12,7 +12,7 @@ API_REPOSITORY="neurwerk/k8s-stack-addon-dify-api"
 WEB_REPOSITORY="neurwerk/k8s-stack-addon-dify-web"
 SOURCE_URL="https://github.com/neurwerk/k8s_stack_addon_dify"
 NODE_IMAGE="docker.io/library/node:24.20.0-alpine"
-ALPINE_IMAGE="docker.io/library/alpine:3.21"
+ALPINE_IMAGE="docker.io/library/alpine:3.24.4"
 
 usage() {
   printf 'Usage: %s <immutable-version>\n' "${0##*/}" >&2
