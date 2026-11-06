@@ -7,8 +7,9 @@ TOOLING_IMAGE := ghcr.io/neurwerk/k8s-stack-addon-dify-tooling
 check: tooling-check
 	@test -n "$(BASE_REPO)" || { echo 'Set BASE_REPO to the exact selected Base checkout'; exit 1; }
 	$(TOOLING) addon-check "$(CURDIR)" --base "$(BASE_REPO)"
-	uv run --frozen ruff check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts tests/charts
-	uv run --frozen ruff format --check customizations/api/neurwerk_sso.py customizations/api/neurwerk_settings.py customizations/scripts scripts tests/charts
+	uv run --frozen ruff check customizations/api customizations/scripts scripts tests/charts
+	uv run --frozen ruff format --check customizations/api customizations/scripts scripts tests/charts
+	uv run --frozen ruff format --check --config pyproject.toml tooling/src/dify_tooling/payloads/sync_models.py
 	shellcheck deploy.sh scripts/verify-sources.sh
 	./scripts/verify-sources.sh
 	uv run --frozen python -m unittest discover -s tests/charts -p 'test_*.py'

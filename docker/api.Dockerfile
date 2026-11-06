@@ -38,7 +38,7 @@ COPY customizations/api/neurwerk_settings.py /app/api/neurwerk_settings.py
 COPY customizations/api/migrations/versions/2025_06_06_1424-4474872b0ee6_workflow_draft_varaibles_add_node_execution_id.py /app/api/migrations/versions/2025_06_06_1424-4474872b0ee6_workflow_draft_varaibles_add_node_execution_id.py
 COPY customizations/scripts/patch_dify.py /tmp/patch_dify.py
 RUN python /tmp/patch_dify.py api /app/api && rm /tmp/patch_dify.py
-COPY customizations/scripts/ /app/api/scripts/
+COPY customizations/scripts/setup_model_provider.py /app/api/scripts/
 COPY customizations/plugins/ /app/api/plugins-offline/
 COPY LICENSE NOTICE-CHANGES.md THIRD_PARTY_NOTICES.md /licenses/neurwerk-k8s-stack-addon-dify/
 COPY LICENSES/ /licenses/neurwerk-k8s-stack-addon-dify/LICENSES/
