@@ -5,6 +5,7 @@ TOOLING_IMAGE := ghcr.io/neurwerk/k8s-stack-addon-dify-tooling
 
 .PHONY: check tooling-check tooling-build
 check: tooling-check
+	uv lock --check
 	@test -n "$(BASE_REPO)" || { echo 'Set BASE_REPO to the exact selected Base checkout'; exit 1; }
 	$(TOOLING) addon-check "$(CURDIR)" --base "$(BASE_REPO)"
 	uv run --frozen ruff check customizations/api customizations/scripts scripts tests/charts
