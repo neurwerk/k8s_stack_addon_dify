@@ -12,7 +12,6 @@ frontendDify:
   pullPolicy: IfNotPresent
   api:
     ports:
-      container: { http: 5001 }
       service:   { http: 80 }
   webGui:
     ports:

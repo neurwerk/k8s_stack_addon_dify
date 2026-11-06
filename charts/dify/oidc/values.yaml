@@ -8,10 +8,3 @@ authKeycloak:
 dify:
   enabled: false
   hostname: ""
-resources:
-  requests:
-    cpu: 25m
-    memory: 64Mi
-  limits:
-    cpu: 250m
-    memory: 256Mi
