@@ -492,7 +492,7 @@ wheels = [
 
 [[package]]
 name = "dify-tooling"
-version = "0.1.8"
+version = "0.1.9"
 source = { editable = "." }
 dependencies = [
     { name = "k8s-stack-tooling" },
