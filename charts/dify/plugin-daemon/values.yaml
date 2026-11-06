@@ -32,10 +32,6 @@ frontendDify:
       limits:
         cpu: 200m
         memory: 256Mi
-    # serverKey and difyInnerApiKey are sourced from the frontend-dify-secret (PLUGIN_DAEMON_KEY).
-    # These stubs are for documentation only; runtime values come from the ESO Secret.
-    serverKey: ""
-    difyInnerApiKey: ""
   storage:
     size: 5Gi
     storageClassName: infra-rook-ceph-rbd

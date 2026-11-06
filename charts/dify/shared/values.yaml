@@ -9,7 +9,3 @@ authKeycloak:
   hostname: ""
   realm: ""
   difyClientId: ""
-
-# AgentGateway — sourced from shared-hostnames-config-map
-infraAgentgatewayWrapper:
-  hostname: ""
