@@ -3,7 +3,7 @@ kind: AddonRelease
 metadata:
   name: dify
 spec:
-  version: 0.1.6
+  version: 0.1.7
   status: ready
   sourceName: dify-addon
   configurationKey: dify
@@ -96,8 +96,8 @@ spec:
       extensions: [vector]
   artifacts:
     - {id: tooling, role: product, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-tooling:0.1.9@sha256:dc8aec814acc0a2ccd1eb49bde67fb1a0d353c1adaa0e2421117842bce33f80c'}
-    - {id: api, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v2@sha256:796078d336ebbd5f198188bc361eb1d5519c7f03fdd2daba5f3173507ee45566'}
-    - {id: web, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v2@sha256:b9ad455491ad8bde8266291f0de64b0690989325735a64224b78a11b54443709'}
+    - {id: api, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v3@sha256:61c3420702b932665c3fb276dfd538129b03e4b4a7623ccf72427397e83b25cb'}
+    - {id: web, role: native, image: 'ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v3@sha256:db22f42339626fb286bf2b111074c56d337c6fe70b3068d2cfb035f4890c906c'}
     - {id: agent-backend, role: native, image: 'docker.io/langgenius/dify-agent-backend:1.17.1@sha256:a30c039bbead65d7fd8baf8c53fc867373f515c5721e46070ce03ed04c5f1e32'}
     - {id: agent-sandbox, role: native, image: 'docker.io/langgenius/dify-agent-local-sandbox:1.17.1@sha256:f4d404c9dcdf80bd72f65e84c3f2bbd1f3404fd4b363db837176da8aaf771b1d'}
     - {id: agent-proxy, role: native, image: 'docker.io/ubuntu/squid:6.6-24.04_beta@sha256:6a097f68bae708cedbabd6188d68c7e2e7a38cedd05a176e1cc0ba29e3bbe029'}

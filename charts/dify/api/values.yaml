@@ -15,7 +15,7 @@ dify:
   enabled: false
   hostname: ""
 frontendDify:
-  apiImage: ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v2@sha256:796078d336ebbd5f198188bc361eb1d5519c7f03fdd2daba5f3173507ee45566
+  apiImage: ghcr.io/neurwerk/k8s-stack-addon-dify-api:1.17.1-kc-v3@sha256:61c3420702b932665c3fb276dfd538129b03e4b4a7623ccf72427397e83b25cb
   pullPolicy: IfNotPresent
   postgres:
     host: postgres-operations.infra-postgres-operations.svc.cluster.local

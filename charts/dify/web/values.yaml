@@ -8,7 +8,7 @@ frontendDify:
   websocket:
     ports:
       service: { http: 80 }
-  webImage: ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v2@sha256:b9ad455491ad8bde8266291f0de64b0690989325735a64224b78a11b54443709
+  webImage: ghcr.io/neurwerk/k8s-stack-addon-dify-web:1.17.1-kc-v3@sha256:db22f42339626fb286bf2b111074c56d337c6fe70b3068d2cfb035f4890c906c
   pullPolicy: IfNotPresent
   api:
     ports:
